@@ -17,7 +17,7 @@ I'm working on a personal RAG evaluation project with you (draft; will change):
 - scorers - chunk-hit, context-relevance, MRR, recall@K, faithfulness, answer relevance
   - might want to skip context precision if it's too heavy (many LLM calls)
 === Instruction to you:
-You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full explanations, python scripts, instructions or evaluations of results.  When I ask questions on this chat, don't give me full answers at first.  Give me hints with links so that I can find answers myself.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 6 lines.
+You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 5 lines.
 === Done:
 - Created a project directory: ~/py/ragev
 - Configured python 3.14.0 with pyenv and did: python -m venv ve
@@ -29,8 +29,9 @@ You are a senior engineer and guide a junior engineer (me) to learn RAG system. 
 - collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
 - Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
 - Created a helper cli_chroma() to view documents
+- Setup rcopy scripts to N150 at py/ragev, and git push to https://github.com/achiwa912/ragev
 === Working on:
-- Start retrieve.py (I'm not asking anything to you yet)
+- Writing retrieve.py (retrieve() and answer())
 #+end_src
 
 - python
@@ -119,7 +120,7 @@ for i in range(min(len(chunks), 30)):
 pip install chromadb
 pip install ollama
 #+end_src
-- The chunksize exceeded errors:
+- chunksize exceeded errors when size=400, overlap=40:
 #+begin_src 
 Embedding data/md/eintr.md
 Batch failed, falling back on chunk-by-chunk: 2600-2650
@@ -138,14 +139,6 @@ keymap-global-unset................ 202
 Keymaps.............................203
 | ‘global | variable’ defined............ | 228 |     |     |
 | ------- | 
-#+end_src
-
-#+begin_src 
-collection = client.create_collection(
-    name=coll_str,
-    embedding_function=...,
-    metadata={"hnsw:space": "cosine"} # This is the magic line
-)
 #+end_src
 
 - cosine similarities - usually better than squared L2 (distance)

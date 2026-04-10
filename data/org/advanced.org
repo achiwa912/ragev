@@ -1,0 +1,599 @@
+** <DONE> Advanced Prompting guide                              :ai:tech:ai:
+:PROPERTIES:
+:EXPORT_FILE_NAME: advprompt
+:EXPORT_DATE: 2026-03-22
+:END:
+
+To be honest, the word "Prompt Engineering" sounded like a bit black magic or even alchemy to me; It's more of an art than a science.  
+
+But as all IT engineers are required to improve our productivity using AIs, I decided to learn it and go a little deeper on the subject.  
+
+This article is my learning notes as well as a practical guide for advanced prompting.  In later sections, I have added insights that I gained through my prompt usage and Q&As with (or "interrogating") AIs.
+
+*** How I learned
+How I learned:
+1. Ask AI to give me a 2-week advanced prompting course tailored for me (see the table below)
+2. I say "Let's do W1D1 (week 1 day 1)", and it gives me the lesson
+3. If I don't think I understand the subject well, I ask AIs to explain more
+4. Do some exercises given by AI
+5. Lesson completes for the day but usually I'm still confused
+6. I ask lots of questions to AIs about meanings, applications, how a topic relates to other topics that I learned, etc
+7. If I'm more or less satisfied, move on to the next day
+
+At first, Copilot was my main tutor because it doesn't have a visible usage cap.  When I don't understand or am not satisfied with its explanations, I turn to (sometimes all of) ChatGPT, Gemini and/or Claude for better explanations.  I found that this is a good approach to avoid their usage caps.  (Being "free" is of high priority to me)
+
+The course:
+| Week | Day | Topic Category        | Patterns / Focus Areas                                           |
+|------+-----+------------------------+-------------------------------------------------------------------|
+| W1   | D1  | Foundational Pattern   | PREV                                                              |
+| W1   | D2  | Reasoning Patterns     | ReAct, Self-Ask, Skeleton, Guardrail                              |
+| W1   | D3  | Refinement Patterns    | Self-Refinement, CoD, Iterative Drafting                          |
+| W1   | D4  | Pattern Combinations   | PREV+ReAct; Skeleton+Iterative; Self-Ask+CoD; Guardrail+Self-Refinement |
+| W1   | D5  | Rest Day               | —                                                                 |
+|------+-----+------------------------+-------------------------------------------------------------------|
+| W2   | D1  | Advanced Composition   | Multi-pattern orchestration                                       |
+| W2   | D2  | Agentic Patterns       | Tool-use prompting, delegation, planning loops                    |
+| W2   | D3  | Evaluation Patterns    | Rubric, Multi-axis, Comparative, Error-spotting, Delta, Self-critique, Criteria-generation, Pass/Fail |
+| W2   | D4  | Synthesis Patterns     | Multi-source merging, abstraction, conceptual blending            |
+| W2   | D5  | Capstone               | Build a full prompt-driven system                                 |
+
+*** Patterns
+These patterns can be used alone, but it would be very powerful if combined with others including evaluation patterns that I will explain later.  There's no single, versatile, most powerful prompt template that can be applied to anything.  You should be able to use these "tools" when applicable.
+
+**** PREV ⭐⭐⭐
+PREV stands for Plan, Reason, Execute and Verify.  It is one of the most useful patterns that addresses the LLM weakness that it tends to jump into conclusions too early.  This is a macro-level workflow that forces LLM to slow down.
+
+- Plan: The model outlines a clear, step-by-step approach before doing anything.
+- Reason: It justifies why this plan is appropriate, surfacing assumptions and logic.
+- Execute: It carries out the plan in a controlled, deliberate way.
+- Verify: It checks whether the output meets the goal and corrects if needed.
+
+Sample template:
+#+begin_src 
+Task: [TASK]
+
+Plan: Outline the key steps to answer this task.
+Reason: Think through the logic and potential issues.
+Execute: Write the answer.
+Verify: Check the answer against the task requirements. Note any gaps.
+#+end_src
+
+**** ReAct ⭐⭐⭐
+ReAct stands for Reason-Action.  It is a micro-pattern applicable inside a step for a larger workflow.  ReAct breaks a step into Thought \to Action \to Observation loop.
+
+- Thought: Identify what is unknown or missing for this step, and decide what action would resolve it.
+- Action: Perform the operation — inspect a document, extract data, compute, search, or use a tool — to obtain possibly external information.
+- Observation: Review the result of the action and determine whether the unknown is resolved or whether another Thought \to Action cycle is needed.
+
+Sample template:
+#+begin_src 
+Task: [TASK]
+
+Thought: What do I know and what do I need to find out?
+Action: [search / retrieve / compute / write]
+Observation: What did the action return?
+
+Repeat Thought → Action → Observation as needed.
+
+Final Answer: [answer]
+#+end_src
+
+**** Self-Ask ⭐⭐⭐
+Self-Ask is a pattern that LLM splits a task into sub-questions.  It generates sub-questions and answer them sequentially.  This pattern is to address LLM's weakness that it tends to jump to conclusion without breaking down.  It's a more structured version of CoT (Chain of Thoughts) pattern.
+
+Sample template:
+#+begin_src 
+Task: [TASK]
+
+Generate sub-questions you need to answer to solve this task.
+Q1: [sub-question]
+A1: [answer]
+Q2: [sub-question]
+A2: [answer]
+...
+Final Answer: [answer]
+#+end_src
+
+**** Untangle confusion
+When I learned PREV, ReAct and Self-Ask, I was really confused.  What is the difference really?  These are all to address LLM's weakness of jumping into conclusion.  Should I just pick one of these?
+
+It turned out that they address different weaknesses.
+- PREV - fixes lack of self-criticism; forces it to verify what it did
+- ReAct - fixes knowledge gaps; retrieves new (to LLM) information and reflects to later steps
+- Self-Ask - fixes logic gaps; adds a structure to reasoning
+
+They are different, and can even be combined if a task is reasonably complex.
+
+**** Skeleton ⭐⭐⭐
+Skeleton pattern is for users to provide outlines that LLM needs to follow and to use as headers.  This is to prevent LLM from writing messy, unstructured output.  This is also useful to force LLM to follow document templates.
+
+Sample template:
+#+begin_src 
+Task: [TASK]
+
+Step 1 - Build skeleton:
+Outline the structure of the answer without filling in details.
+- Section 1: [heading]
+- Section 2: [heading]
+- Section 3: [heading]
+
+Step 2 - Fill in:
+Expand each section with full content.
+#+end_src
+
+**** Guardrail ⭐⭐
+Guardrail pattern is to give LLM a things-to-avoid list instead of telling it what to do.  This pattern is very versatile and can be used with any other patterns.
+
+#+begin_src 
+Task: [TASK]
+
+Constraints:
+- [Constraint A]
+- [Constraint B]
+- [Constraint C]
+
+If your answer violates any constraint, revise before outputting.
+#+end_src
+
+**** Self-refinement ⭐
+Self-refinement is to tell LLM to refine its output itself.  This can be used to polish its output.  Honestly, I'd rather use other patterns as I don't think LLM can give me what I really like.  Either I use a more strict pattern (eg, Skeleton) or modify its output myself.
+
+#+begin_src 
+Task: [TASK]
+
+Draft: Write an initial answer.
+Critique: Identify weaknesses in your draft.
+Refine: Rewrite the answer addressing the weaknesses.
+#+end_src
+
+**** CoD ⭐
+CoD stands for Chain of Density.  This is to tell LLM to give a succinct and dense answer by iteratively eliminating redundancy and less important details.  This can be useful when summarizing documents.
+
+#+begin_src 
+Task: [TASK]
+
+Pass 1: Write a basic answer.
+Pass 2: Rewrite, adding more depth and detail.
+Pass 3: Rewrite again, making it denser and more precise.
+
+Output Pass 3 only.
+#+end_src
+
+**** Iterative drafting ⭐⭐⭐
+Iterative drafting pattern is to tell LLM to refine the draft by iterating based on user-specified criteria.  One iteration focuses on one criterion.
+
+Sample template:
+#+begin_src 
+You will improve the answer through iterative drafting.
+
+Draft 1 — Initial Answer
+Produce a complete but rough answer.
+
+Draft 2 — Improve Structure
+- organize ideas clearly
+- remove redundancy
+- improve flow
+
+Draft 3 — Improve Precision
+- tighten wording
+- remove fluff
+- ensure accuracy
+
+Output
+Final answer only
+#+end_src
+
+*** Combine patterns
+Here are the top 4 combinations recommended by ChatGPT.
+
+**** Self-Ask + PREV
+It follows Decompose \to Solve \to Evaluate \to Verify.  Best default for reasoning-heavy tasks.
+
+Sample:
+#+begin_src 
+Task: [TASK]
+
+1. Decompose: Break into sub-questions and answer each.
+2. Synthesize: Combine answers into a solution.
+3. Evaluate: Check for missing steps, gaps, weak assumptions.
+4. Verify: Check factual correctness and consistency.
+
+Output final answer only.
+#+end_src
+
+**** Skeleton + Iterative Drafting
+This is a solid combination useful for summaries, reports and spec documents.
+
+#+begin_src 
+Task: [TASK]
+
+1. Skeleton: Outline the structure only. No content yet.
+2. Draft: Fill in the skeleton.
+3. Refine: Improve the draft. Repeat up to [N] times.
+
+Output final draft only.
+#+end_src
+
+**** ReAct + PREV
+This is also a powerful combination.  It's basically PREV but each step in Reason uses a ReAct loop.
+
+#+begin_src 
+Task: [TASK]
+
+Plan: Outline what information or steps are needed.
+Reason: Think through the approach.
+
+Loop:
+  Thought: What do I need to find or resolve next?
+  Action: [search / retrieve / compute / write]
+  Observation: What did the action return?
+Repeat until enough information is gathered.
+
+Execute: Write the answer.
+Verify: Check for gaps, errors, or unsupported claims.
+#+end_src
+
+**** Self-Ask + Skeleton
+This is to turn a complex or unclear problem into a clear structure.
+
+#+begin_src 
+Task: [TASK]
+
+1. Decompose: Generate sub-questions needed to solve the task.
+   Q1: [question] → A1: [answer]
+   Q2: [question] → A2: [answer]
+
+2. Skeleton: Use the answers to outline the structure.
+
+3. Fill in: Expand each section with full content.
+
+Output final answer only.
+#+end_src
+
+**** Key takeaways
+You don't have to memorize these.  You'd like to see how patterns are combined instead.  You can just start with Self-Ask + PREV, then add Skeleton or ReAct only when needed.
+
+*** Agentic patterns
+An agentic pattern is a relatively new paradigm in the prompting world.  It is a prompt framework that tells LLM to process a complex task.  It can complete the task without requiring human intervention at each step.
+
+It is only useful for a very complex task because of the added overhead, and usually an overkill for most daily situations.  It consists of the following steps:
+- task statement
+- clear goal
+- (optional) guardrails
+- agent loop
+  - observe
+  - decide on action
+  - act
+  - evaluate
+- state; update after every step
+  - where it's processing
+  - issues
+  - questions
+  - findings
+  - draft output
+  - etc. (you can come up with ones if you would like)
+- stop condition; acceptance criteria
+- final output
+
+The state block is what makes true autonomy possible - without it, the loop has no memory of what it has already done.
+
+Sample:
+#+begin_src 
+Task: [TASK]
+Goal: [GOAL]
+
+Loop up to [N] times:
+  Observe: Assess the current state.
+  Decide: Choose the next action.
+  Act: Execute it.
+  Evaluate: Does the output meet the goal?
+  State: Update findings, issues, draft output.
+  If goal met → stop.
+
+Output final answer only.
+#+end_src
+
+*** Evaluation patterns
+Most patterns we've seen so far are generative.  One of the more important patterns: PREV is because it has its own built-in verification.  Without verification, answers provided by LLM might be just meaningless rambles or worse, complete hallucinations.
+
+Let's look at some important evaluation patterns.
+
+**** Rubric
+Though a bit heavy, Rubric is one of the most reliable evaluation patterns.  It defines explicit criteria and evaluate against them.
+#+begin_src 
+Evaluate the answer based on:
+- accuracy
+- completeness
+- clarity
+- conciseness
+
+For each:
+- give a score (1–5)
+- explain briefly
+
+Then provide an overall judgment.
+#+end_src
+
+Like humans, LLM can generate multiple possible answers for a task.  Rubric can be used to choose the best one based on pre-defined criteria.
+
+**** Grounded Verification
+As all engineers/researchers know, verifying against the source is critically important.  And of course, LLM answers are no exceptions.
+
+#+begin_src 
+Verify each claim against the source.
+Flag anything unsupported or incorrect.
+#+end_src
+
+**** Critic/Reviewer
+
+#+begin_src 
+Review the answer and identify:
+- factual errors
+- missing points
+- unclear sections
+
+Be specific.
+#+end_src
+
+**** Self-Consistency
+I was surprised that this is a pattern.  Well, asking to generate multiple options might be called a pattern.
+
+#+begin_src 
+Generate multiple answers
+Compare them
+Pick the most consistent
+#+end_src
+
+**** Assumption Checking
+If you feel an LLM answer is "off", you can confirm by asking if there is a hidden, made-up assumption.
+
+#+begin_src 
+List assumptions made in the answer.
+Are they valid?
+#+end_src
+
+**** Key takeaway
+If generative patterns are developers, evaluation patterns are QAs.  They give quality aspect to LLM answers.
+
+Use PREV (yes, it's an evaluation pattern) by default, and add Rubric, Ground Verification, etc. as you feel needed.
+
+*** Synthesis pattern
+After a lot of talking with ChatGPT, Gemini and Claude, the core of synthesis pattern is these two:
+- Conflict resolution; and
+- Coherent unification
+
+And practically, add this:
+- Dedupe
+
+Here's the minimal template (by Gemini & Claude)
+#+begin_src 
+Act as a System Architect. Synthesize the following task in 3 stages.
+
+## Stage 1 — Decompose
+List the essential sub-problems. Output: numbered list.
+
+## Stage 2 — Integrate
+Solve all sub-problems into one unified draft.
+Deduplicate overlapping content. Resolve any contradictions explicitly.
+Output: single coherent draft.
+
+## Stage 3 — Converge
+Audit the draft against the original goal and [constraints].
+Output: final answer + one sentence on the primary trade-off resolved.
+#+end_src
+
+For this, Claude pointed out that many synthesis templates don't mandate conflict resolution.  But I agree with ChatGPT that without conflict resolution, it will be /aggregate/, not /synthesis/.  Aggregate just concatenates, whereas synthesis transforms them and produces something valuable.
+
+Notice that each stage displays intermediate outputs.  This is very important because LLM can manage its thinking state this way.  Its output acts as its input.  If the template says "Give me the final answer only", LLM might lose track of its thinking and could result in hallucinations.  
+
+I didn't have this insight until now (week 2 day 4), but it was called "scratch pad effect".
+
+You can use this pattern when there are possibly conflicting, heterogeneous inputs.  Otherwise, this pattern is an overkill (ie, just adds overhead).
+
+*** Capstone
+As the name suggests, capstone is the "final boss" in the advanced prompting course.  It's an integrative task that forces us to use everything we've learned so far.  Capstone is not a new pattern, but is for a complex task against which we combine multiple patterns correctly.
+
+With capstone, we need to generate an end-to-end pipeline in which we consider things like messy inputs, conflicting goals, tradeoffs and ambiguity.  We have patterns in our belts.  We will systematically combine them.
+
+Here is a meta-template:
+#+begin_src 
+You are solving a complex task.
+
+GOAL:
+- Produce a high-quality final output.
+
+PROCESS:
+1. Clarify the task (ask or infer missing info)
+2. Plan approach (select and order patterns)
+3. Execute in stages:
+   - reasoning / gathering
+   - synthesis / transformation
+   - refinement
+4. Validate against constraints (no hallucination, consistency)
+
+OUTPUT:
+- Final result
+- (Optional) brief rationale of decisions
+#+end_src
+
+We'll inject PREV, Self-Ask, synthesis, etc. to the meta-template.
+
+For example:
+- Task - Transform a messy, full-scope Functional Specification (FS) into a reduced-scope preview release FS, while preserving core value and avoiding hallucinated features.
+#+begin_src 
+You are an AI assistant that transforms a full Functional Specification (FS)
+into a reduced-scope preview FS.
+
+GOAL:
+- Produce a coherent, minimal preview FS that preserves core functionality.
+
+PROCESS:
+
+1. Clarify (Self-Ask)
+- What is the product’s core value?
+- What features are critical vs optional?
+- Are there missing constraints (timeline, audience, risks)?
+
+2. Plan (PREV - Plan)
+- Define reduction strategy:
+  - Must keep
+  - Can defer
+  - Must remove
+- Define output structure
+
+3. Execute
+
+3.1 Analyze (Reason)
+- Extract all features and requirements from input FS
+
+3.2 Filter (Decision)
+- Classify into:
+  - Core (keep)
+  - Secondary (defer)
+  - Out of scope (remove)
+
+3.3 Synthesize
+- Merge remaining elements into a clean, non-redundant structure
+- Resolve conflicts between requirements
+- Ensure coherence
+
+3.4 Draft (Iterative Drafting)
+- Produce first version of preview FS
+
+3.5 Refine
+- Improve clarity, conciseness, and structure
+
+4. Validate (Guardrails)
+- No hallucinated features
+- No contradictions
+- Scope is strictly reduced (not equal or expanded)
+- Output is self-contained
+
+OUTPUT:
+- Final preview FS
+- Brief rationale for major cuts and decisions
+#+end_src
+
+As you can see, a capstone prompt can be complex and heavy.  Don't use capstone for a task that requires a few patterns at the most.
+
+*** Human-in/on-the-loop
+I was suspicious that giant prompts such as capstone really are useful.  What if AI makes some mistake in an early but important step in the pipeline?  That could invalidate all later steps.
+
+The latest (2026) trend is that humans are involved at important middle steps.  It's either called:
+- Human-in-the-loop (HITL) - if the pipeline stops until human approves
+- Human-on-the-loop (HOTL) - pipeline continues but logs state so that human can check/audit later
+
+This builds on capstone-style prompting, but introduces reliability by breaking the pipeline into human-validated stages.
+
+Human checkpoint can be inserted to meta prompt (capstone) like this:
+#+begin_src 
+Meta-Template: Agentic Orchestration with Human-in-the-Loop (HITL)
+
+Phase 1: CLARIFY
+- Task :: Identify goals, edge cases, and missing technical info.
+- [CHECKPOINT] :: User verifies "Definition of Done" and constraints.
+
+Phase 2: PLAN
+- Task :: Generate a Directed Acyclic Graph (DAG) of sub-tasks.
+- [CHECKPOINT] :: User approves the logic, selected tools, and security scope.
+
+Phase 3: EXECUTE (Iterative)
+- Task :: Sequential execution of Stage N (Reasoning -> Tool Use -> Output).
+- [CHECKPOINT] :: User reviews "Middle Result." 
+  #+BEGIN_NOTE
+  Crucial for preventing error propagation into Stage N+1.
+  #+END_NOTE
+
+Phase 4: VALIDATE & REFINE
+- Task :: AI-self-critique vs. User constraints.
+- [CHECKPOINT] :: Final Human Sign-off.
+#+end_src
+
+I'm pretty sure this trend is the right course for enterprise and government organizations.
+
+*** How to choose patterns (practical guide)
+Selection Logic:
+| Task Trait            | Pattern                  | Goal                               |
+|-----------------------+--------------------------+------------------------------------|
+| Unclear / Complex     | Self-Ask                 | Identify missing info / sub-tasks  |
+| Structure Required    | Skeleton                 | Define "shape" before details      |
+| External Info Needed  | ReAct                    | Thought -> Act -> Observe loop     |
+| Mission Critical      | PREV (+ Evaluation)      | Grounding & constraint adherence   |
+| Long-form / Content   | Skeleton + Iterative     | Prevent "mid-text drift"           |
+| Messy / Conflicting   | Synthesis                | Reconcile multiple inputs          |
+
+Default:
+
+1. Start with casual prompt (as you always do)
+2. Give structure: Add CoT and/or Hard Guardrails
+3. Self-Ask + PREV: 
+  - Self-Ask: Decompose to ensure no skipped technical steps
+  - PREV: Validate output against specific technical specs/docs.
+4. Layer Others: Add ReAct (live data) or Synthesis (merging docs) only if needed.
+
+**** Example: Applying the pattern selection
+#+begin_src 
+Task:
+"Summarize a messy technical document into a clear report"
+
+Step 1 — Identify traits:
+- Messy → Synthesis
+- Needs structure → Skeleton
+- Long-form → Iterative drafting
+
+Step 2 — Pattern selection:
+→ Skeleton + Iterative (+ optional PREV)
+
+Step 3 — Prompt (simplified):
+Use Skeleton + Iterative drafting:
+- First generate outline
+- Then expand
+- Then refine for clarity
+
+Step 4 — Result:
+- Clear sections
+- Reduced redundancy
+- Structured summary instead of raw text
+#+end_src
+
+*** Troubleshooting
+Advanced prompting is often about troubleshooting.  Here is a simple failure mode table (courtesy of Gemini):
+| Symptom                      | Likely Cause                                | Recommended Pattern Fix                         |
+|------------------------------+---------------------------------------------+-------------------------------------------------|
+| "I'm sorry, I can't do that" | Guardrail is too strict or poorly defined.  | Loosen Constraints / Add "Negative Constraints" |
+| Endless looping/repetition   | Agentic loop has no clear "exit" state.     | Add Stop Condition or a Max Iteration count.    |
+| Confident Hallucination      | Lack of Grounding or Reason-before-Action.  | Apply PREV or Self-Ask.                         |
+| Bland, generic output        | Model is "playing it safe" (the Average).   | Add Rubric with a "Technical Depth" axis.       |
+| Losing the thread mid-task   | Context window "Lost in the Middle" effect. | Use Skeleton to anchor the structure.           |
+| Conflicting instructions     | Synthesis without resolution logic.         | Apply Synthesis (Stage 2 - Integrate).          |
+
+One useful technique I found is asking AI how it evaluates my prompt and provide improvements.
+
+*** When prompting is not enough
+Advanced prompting could be great tools under your belt, but there's some risks using them:
+- Using AIs involves extra overhead, especially figuring out hallucinations could be a real pain
+- What AI outputs might not be good enough even after tailoring prompts
+- If you go for a complex prompt (eg, Capstone) from the beginning, that would be an overkill most of the time
+- Your task might not be suitable for AIs in the first place (eg, requires domain knowledge available only in your organization)
+
+Also, there are limitations specific to AIs:
+- There are always some possibilities of hallucinations included
+- If a task is long and complex, AI might lose track even with techniques such as CoT (Chain of Thoughts)
+
+How can you mitigate these:
+- Use a phased approach (see Default in How to Choose Patterns section)
+- Break up into sub-tasks and (you) intervene at each sub-task
+  - The risk is more overhead
+- Consider adding a RAG system
+
+At the end of the day, prompting should be seen as a fast prototyping tool, not as a reliable production system.
+
+**** Processing long prompt
+If a prompt including context is long, AIs tend to lose track and hallucinate more.  There are two main reasons:
+1. As mistakes are not corrected when they are made, they accumulate and wrongly change the context
+2. AIs have U-shaped attention span.  Sentences in the middle of the documents might not get necessary attention that they deserve
+
+If a long prompt doesn't deliver a good result, you might want to split it to sub-tasks and intervene at each sub-task.  Simplifying tasks is a good strategy to troubleshoot.  You can also repeat important sentences at the bottom of the prompt where the AI's memory is still fresh.
+
+*** After thoughts
+Now I've learned the theory, I'll put this knowledge into actual practice in my daily life.  As we must use AIs to improve our work anyway, let's enjoy talking with them.  I hope this guide will give you more fun to your every day conversations with AIs.

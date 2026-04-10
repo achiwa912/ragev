@@ -143,3 +143,33 @@ Keymaps.............................203
 
 - cosine similarities - usually better than squared L2 (distance)
 
+*** retrieve and answer
+- llama3.2:3b was wrong at 8-9 out of 10 questions I asked.
+- I found these possibilities
+  - document selection wasn't good
+  - the model is too weak for noises
+  - my questions are not fair
+  - retrieved chunks don't contain answers
+- homelab.org
+#+begin_src 
+"How much did the domain name cost for the first year?"
+"What processor does the mini PC have?"
+"How much RAM was assigned to the Ubuntu VM?"
+"What service is used for network-wide ad-blocking?"
+#+end_src
+- advanced.org
+#+begin_src 
+"What does PREV stand for?"
+"What is the scratch pad effect?"
+"What is the difference between Human-in-the-loop and Human-on-the-loop?"
+"What does CoD stand for?"
+#+end_src
+
+#+begin_src 
+ollama pull llama3.1:8b
+#+end_src
+- prompt to generate questions
+#+begin_src 
+For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
+The doc:
+#+end_src

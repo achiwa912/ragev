@@ -29,7 +29,7 @@ def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_LLM) -> dict:
     for chunk in retrieved['chunks']:
         chunks_str = chunks_str + '---\n' + chunk
     prompt=f"Concisely answer the question in Query based only on the information in Context.  If you don't know the answer, just say 'I don't know'.\nQuery: {query}\nContext: {chunks_str.lstrip()}\nAnswer: "
-    
+    #print(prompt)
     ans = ollama.generate(
         model=model,
         prompt=prompt
@@ -43,3 +43,21 @@ def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_LLM) -> dict:
     }
 
 
+queries = ["How much did the domain name cost for the first year?",
+           "What processor does the mini PC have?",
+           "How much RAM was assigned to the Ubuntu VM?",
+           "What service is used for network-wide ad-blocking?",
+           "What does PREV stand for?",
+           "What is the scratch pad effect?",
+           "What is the difference between Human-in-the-loop and Human-on-the-loop?",
+           "What does CoD stand for?"
+           ]
+for query in queries:
+    print(query)
+    ans = answer(query, "all_s400_o40")
+    print(ans['answer'])
+    if ans['answer'].startswith("I don't know"):
+        print(ans['distances'])
+        print(ans['chunks'])
+    print('-------------------------------------')
+breakpoint()

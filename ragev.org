@@ -1,0 +1,152 @@
+#+TITLE: RAG Evaluation - ragev
+
+#+begin_src 
+I'm working on a personal RAG evaluation project with you (draft; will change):
+- embed models - all-minilm, nomic-embed-text
+- LLM models - llama3.2:3b, maybe add 7b/8b models and/or Gemini API
+- vector DB - ChromaDB, may or may not try Qdrant
+- dataset - Converted to .md files locally
+  - https://github.com/achiwa912/daemonlord/blob/main/README.md -> data/md/dl.md
+  - https://github.com/achiwa912/vbs/blob/main/README.org -> data/md/vbs.md
+  - https://www.gnu.org/software/emacs/manual/pdf/eintr.pdf -> data/md/eimtr.md
+- dev environment
+  - M1 Pro Mac (10-core, 32GB RAM) — primary dev/test, fan-sensitive
+  - N150 homelab, Ubuntu on Proxmox (11GB RAM) — git origin, rsync target only (too slow for LLM inference)
+- python scripts - TBD (ingest.py, retrieve.py, eval.py, etc.)
+- parameters - chunk size, overlap size, top-k
+- scorers - chunk-hit, context-relevance, MRR, recall@K, faithfulness, answer relevance
+  - might want to skip context precision if it's too heavy (many LLM calls)
+=== Instruction to you:
+You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full explanations, python scripts, instructions or evaluations of results.  When I ask questions on this chat, don't give me full answers at first.  Give me hints with links so that I can find answers myself.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 6 lines.
+=== Done:
+- Created a project directory: ~/py/ragev
+- Configured python 3.14.0 with pyenv and did: python -m venv ve
+- Prepared dataset in ~/py/ragev/data/md/
+- Decided not to use langchain_text_splitters > MarkdownHeaderTextSplitter as a sample file (dl.md) confuses the splitter and mangles the result
+- Decided to start with a simple size-based chunking; will revisit header-based later
+- Wrote split_file_by_size(path, size, overlap) -> chunks:list[str]
+- Decided to recreate collection for every ingest.py run for idempotency
+- collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
+- Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
+- Created a helper cli_chroma() to view documents
+=== Working on:
+- Start retrieve.py (I'm not asking anything to you yet)
+#+end_src
+
+- python
+#+begin_src 
+pyenv install 3.14.0
+pyenv global 3.14.0
+cd ragev
+python -m venv ve
+source ve/bin/activate
+#+end_src
+
+*** Dataset
+**** vbs.md
+#+begin_src 
+wget https://raw.githubusercontent.com/achiwa912/vbs/refs/heads/main/README.org
+#+end_src
+- In Emacs
+#+begin_src 
+(setq org-export-with-broken-links t)
+#+end_src
+- open README.org on Emacs > C-c C-e m m
+#+begin_src 
+mv README.md vbs.md
+rm README.org
+#+end_src
+**** dl.md
+#+begin_src 
+wget https://raw.githubusercontent.com/achiwa912/daemonlord/refs/heads/main/README.md
+mv README.md dl.md
+#+end_src
+- markitdown
+
+**** eintr.md
+#+begin_src 
+wget https://www.gnu.org/software/emacs/manual/pdf/eintr.pdf
+pip install 'markitdown[pdf]'
+markitdown eintr.pdf > eintr.md
+#+end_src
+
+#+begin_src 
+(ve) ~/py/ragev/data % wc md/*
+    3912   14337  154098 md/dl.md
+   13450  152597  985561 md/eintr.md
+     333    1654   11514 md/vbs.md
+   17695  168588 1151173 total
+#+end_src
+
+*** Chunkers
+
+- Use de facto standard
+#+begin_src 
+pip install langchain-text-splitters
+#+end_src
+
+- https://reference.langchain.com/python/langchain-chroma/vectorstores/Chroma
+- This snippet revealed that dl.md confuses the langchain splitter
+#+begin_src python
+from langchain_text_splitters import MarkdownHeaderTextSplitter
+
+splitter = MarkdownHeaderTextSplitter([
+    ("#", "H1"),
+    ("##", "H2"),
+    ("###", "H3"),
+    ("####", "H4"),
+    ("#####", "H5"),
+    ],
+    strip_headers=False)
+
+with open("data/md/dl.md") as f:
+    chunks = splitter.split_text(f.read())
+
+print(f'# of chunks: {len(chunks)}')
+for i in range(min(len(chunks), 30)):
+    print(f'== chunk {i} size: {len(chunks[i].page_content)}')
+    print(chunks[i].metadata)
+#+end_src
+- langchain splitter confuses some "screenshot" lines as headers.  Go for manual.
+- chunk definition:
+  - line.startswith('#') -> header
+  - within a certain size
+- Will start with size-based with overlap
+
+
+*** Embeddings
+#+begin_src 
+pip install chromadb
+pip install ollama
+#+end_src
+- The chunksize exceeded errors:
+#+begin_src 
+Embedding data/md/eintr.md
+Batch failed, falling back on chunk-by-chunk: 2600-2650
+Skipping eintr.md_2639 -                      |     |
+count-words-in-defun............... 170 ‘empty list’ defined.................... 2
+Counting.............................. 17 ‘empty string’ defined.................46
+Counting words in a defun.......166, 168 eobp................................. 150
+curly quotes........................... 86 eq.....................................46
+current-buffer......................
+Batch failed, falling back on chunk-by-chunk: 2650-2700
+Skipping eintr.md_2663 - buffer....................... | 22  |     |     |
+| ------- | ------------------------------- | --- | --- | --- |
+keymap-global-unset................ 202
+| Global set | key........................203 |     |     |     |
+| ---------- | ------------------------------ | --- | --- | --- |
+Keymaps.............................203
+| ‘global | variable’ defined............ | 228 |     |     |
+| ------- | 
+#+end_src
+
+#+begin_src 
+collection = client.create_collection(
+    name=coll_str,
+    embedding_function=...,
+    metadata={"hnsw:space": "cosine"} # This is the magic line
+)
+#+end_src
+
+- cosine similarities - usually better than squared L2 (distance)
+

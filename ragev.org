@@ -5,33 +5,32 @@ I'm working on a personal RAG evaluation project with you (draft; will change):
 - embed models - all-minilm, nomic-embed-text
 - LLM models - llama3.2:3b, maybe add 7b/8b models and/or Gemini API
 - vector DB - ChromaDB, may or may not try Qdrant
-- dataset - Converted to .md files locally
-  - https://github.com/achiwa912/daemonlord/blob/main/README.md -> data/md/dl.md
-  - https://github.com/achiwa912/vbs/blob/main/README.org -> data/md/vbs.md
-  - https://www.gnu.org/software/emacs/manual/pdf/eintr.pdf -> data/md/eimtr.md
+- dataset
+  - https://github.com/achiwa912/vbs/blob/main/README.org -> data/org/vbs.org
+  - https://blog.achiwa.co.uk/posts/homelab_minipc/ -> data/org/homelab.org
+  - https://blog.achiwa.co.uk/posts/advprompt/ -> data/org/advanced.org
 - dev environment
   - M1 Pro Mac (10-core, 32GB RAM) — primary dev/test, fan-sensitive
   - N150 homelab, Ubuntu on Proxmox (11GB RAM) — git origin, rsync target only (too slow for LLM inference)
-- python scripts - TBD (ingest.py, retrieve.py, eval.py, etc.)
+- python scripts - ingest.py, retrieve.py, eval.py, etc.
 - parameters - chunk size, overlap size, top-k
-- scorers - chunk-hit, context-relevance, MRR, recall@K, faithfulness, answer relevance
-  - might want to skip context precision if it's too heavy (many LLM calls)
+- scorers - recall@K (approx w/ keywords), MRR, faithfulness, answer correctness
 === Instruction to you:
 You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 5 lines.
 === Done:
 - Created a project directory: ~/py/ragev
 - Configured python 3.14.0 with pyenv and did: python -m venv ve
-- Prepared dataset in ~/py/ragev/data/md/
-- Decided not to use langchain_text_splitters > MarkdownHeaderTextSplitter as a sample file (dl.md) confuses the splitter and mangles the result
+- Prepared dataset in ~/py/ragev/data/org/
 - Decided to start with a simple size-based chunking; will revisit header-based later
-- Wrote split_file_by_size(path, size, overlap) -> chunks:list[str]
-- Decided to recreate collection for every ingest.py run for idempotency
 - collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
 - Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
 - Created a helper cli_chroma() to view documents
 - Setup rcopy scripts to N150 at py/ragev, and git push to https://github.com/achiwa912/ragev
+- Claude generated 20 questions with 3 keywords each and expected_answer.
+- Wrote retrieve.py (retrieve() and answer())
+- Wrote eval.py - Minimum set of Recall@K, MRR, Faithfulness, Correcness
 === Working on:
-- Writing retrieve.py (retrieve() and answer())
+- Might want to reduce questions to 10.  LLM unstable.  Might want to try Gemini API
 #+end_src
 
 - python
@@ -172,4 +171,27 @@ ollama pull llama3.1:8b
 #+begin_src 
 For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
 The doc:
+#+end_src
+- Faithfulness
+  - https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/
+- Prompt to ask Faithfulness and Correctness prompts for ChatGPT
+#+begin_src 
+Give me compact prompt examples for Faithfulness and Correctness for a RAG eval.
+I'm using llama3.1:8b
+#+end_src
+- Faithfulness
+#+begin_src 
+Answer: {answer}
+Context: {contexts}
+
+Is the answer fully supported by the context?
+Reply ONLY: YES or NO
+#+end_src
+- Correctness
+#+begin_src 
+Reference: {reference_answer}
+Answer: {answer}
+
+Is the answer correct given the reference?
+Reply ONLY: YES or NO
 #+end_src

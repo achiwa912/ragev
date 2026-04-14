@@ -6,6 +6,7 @@ import ollama
 from config import CHROMA_PATH, DEFAULT_EMBEDDING, DEFAULT_LLM
 
 def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
+    '''Retrieve top_k contexts similar to query'''
     try:
         client = chromadb.PersistentClient(path=CHROMA_PATH)
         col = client.get_collection(name=col_name)
@@ -24,6 +25,7 @@ def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
     }
 
 def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_LLM) -> dict:
+    '''Retrieve top_k contexts, and ask LLM to generate an answer'''
     retrieved = retrieve(query, col_name, top_k)
     chunks_str = ''
     for chunk in retrieved['chunks']:
@@ -42,22 +44,3 @@ def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_LLM) -> dict:
         "distances": retrieved['distances']
     }
 
-
-queries = ["How much did the domain name cost for the first year?",
-           "What processor does the mini PC have?",
-           "How much RAM was assigned to the Ubuntu VM?",
-           "What service is used for network-wide ad-blocking?",
-           "What does PREV stand for?",
-           "What is the scratch pad effect?",
-           "What is the difference between Human-in-the-loop and Human-on-the-loop?",
-           "What does CoD stand for?"
-           ]
-for query in queries:
-    print(query)
-    ans = answer(query, "all_s400_o40")
-    print(ans['answer'])
-    if ans['answer'].startswith("I don't know"):
-        print(ans['distances'])
-        print(ans['chunks'])
-    print('-------------------------------------')
-breakpoint()

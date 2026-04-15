@@ -44,7 +44,7 @@ questions_keywords = [
     {
         "id": "q08",
         "query": "What is Caddy and what killer feature does it have?",
-        "keywords": ["reverse proxy", "certificate", "renewal"],
+        "keywords": ["reverse proxy", "web server", "certificate"],
         "reference_answer": "Caddy is a web server and reverse proxy. Its killer feature is automatic certificate deployment and renewal — it automatically acquires certificates from Let's Encrypt, removing the burden of manual cert renewal for server admins."
     },
     {

@@ -18,21 +18,22 @@ I'm working on a personal RAG evaluation project with you (draft; will change):
 === Instruction to you:
 You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 5 lines.
 === Done:
-- Created a project directory: ~/py/ragev
-- Configured python 3.14.0 with pyenv and did: python -m venv ve
-- Prepared dataset in ~/py/ragev/data/org/
 - Decided to start with a simple size-based chunking; will revisit header-based later
 - collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
 - Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
-- Created a helper cli_chroma() to view documents
-- Setup rcopy scripts to N150 at py/ragev, and git push to https://github.com/achiwa912/ragev
 - Claude generated 20 questions with 3 keywords each and expected_answer > will use only 10
 - Wrote retrieve.py (retrieve() and answer())
 - Wrote eval.py - Minimum set of Recall@K, MRR, Faithfulness, Correcness
-- Implemented Gemini API for answer, correctness and faithfulness.  Gemini is more stable that ollama8b
-- Set temperature=0 (and seed=42 for Ollama) -> stabilized both
+- Implemented Gemini API for answer, correctness and faithfulness.
+- Set temperature=0, seed=123 -> stabilized both gemini and ollama
+- Fixed a bug:  For recall@k and reciprocal_rank to replace '-' or '_' to ' '
+- Eval done for size and overlap.  s600_o60 winner.
+- Eval done for top_k.  6 winner.
+- Eval done for model that answers between ollama & gemini.  more or less the same
+- Implemented CoT prompts for faithfulness and correctness, tweaked them
+- Lots of 503s from Gemini APIs -> added retries
 === Working on:
-- What else to consider/implement before moving on to eval, changing parameters, etc.?
+- Thinking what's remaining
 #+end_src
 
 - python
@@ -212,6 +213,7 @@ Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
 Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.70 Correctness: 0.60
 Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
 #+end_src
+-> changed temperature=0, seed=123
 
 **** questions
 - OK: 1, 2, 5, 6, 10, 14, 15, 17, 19, 20
@@ -223,3 +225,113 @@ Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
 #+begin_src 
 pip install -U google-genai
 #+end_src
+
+**** A bug fix
+- Also, reacall@k and rr did false negative for ' '(space), '-' and '_' within a keyword.  Maybe a bug. --> fixed.
+
+*** size, overlap (q01-q10)
+- note: failed ingesting chunks for s1000 and s1200
+#+begin_src 
+=== all_s100_o10 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.30, MRR: 0.40, Faithfulness: 0.70 Correctness: 0.40
+=== all_s200_o20 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.03, MRR: 0.10, Faithfulness: 0.00 Correctness: 0.00
+=== all_s400_o40 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.75, Faithfulness: 0.80 Correctness: 0.70
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s800_o80 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.77, MRR: 0.72, Faithfulness: 0.70 Correctness: 0.70
+=== all_s1000_o100 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.70, Faithfulness: 0.80 Correctness: 0.70
+=== all_s1200_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.60, MRR: 0.65, Faithfulness: 0.70 Correctness: 0.60
+#+end_src
+-> winner: s600_o60
+#+begin_src 
+=== all_s600_o0 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.70, MRR: 0.73, Faithfulness: 0.80 Correctness: 0.80
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.83, Faithfulness: 0.90 Correctness: 0.80
+#+end_src
+-> winner: s600_o60
+
+*** top_k (q01-q10)
+#+begin_src 
+=== all_s600_o60 1 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.47, MRR: 0.70, Faithfulness: 0.60 Correctness: 0.40
+=== all_s600_o60 2 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.70, MRR: 0.75, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o60 4 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.80
+=== all_s600_o60 5 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 8 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 10 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 0.70 Correctness: 0.80
+#+end_src
+-> winner 6
+- Change model_ans llama3.1:8b vs gemini-2.5-flash-lite
+#+begin_src 
+=== all_s600_o60 6 llama3.1:8b gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.90
+
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+#+end_src
+-> the diffs are q07 and q10.  Both are false negative.  gemini didn't like it's own answers thought they are correct.  It liked ollama answers.
+
+*** G-Eval (CoT) to prompts
+- Although eval has stabilized, the eval quality for gemini is still questionable.  ChatGPT suggests to introduce CoT to prompts.  Gemini suggests I should use G-Eval (CoT).  https://arxiv.org/abs/2303.16634
+  - It seems that it's a popular best practice
+
+- Current version:
+#+begin_src python
+FAITHFULNESS_PROMPT = """Answer: {answer}
+Context: {contexts}
+
+Is the answer fully supported by the context?
+Reply ONLY: YES or NO"""
+
+CORRECTNESS_PROMPT = """Reference: {reference_answer}
+Answer: {answer}
+
+Is the answer correct given the reference?
+Reply ONLY: YES or NO"""
+#+end_src
+
+#+begin_src 
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+q01: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q02: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q03: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q04: recall@k: 0.67, RR: 0.33 Faithfulness: 1.0 Correctness: 1.0
+q05: recall@k: 1.00, RR: 1.00 Faithfulness: 0.8 Correctness: 0.2
+q06: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+q07: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+q08: recall@k: 0.33, RR: 0.33 Faithfulness: 0.8 Correctness: 0.7
+q09: recall@k: 0.67, RR: 0.50 Faithfulness: 1.0 Correctness: 1.0
+q10: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+q11: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+q12: recall@k: 0.33, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+q13: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 1.0
+q14: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+q15: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 1.0
+q16: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q17: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+q18: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+q19: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+q20: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.98 Correctness: 0.79
+#+end_src
+- q05 - explanation split into 1st chunk and the previous chunk.  ingest issue.
+
+- Lots of 503s from Gemini API -> retry logic
+

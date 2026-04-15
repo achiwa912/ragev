@@ -3,7 +3,9 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import (
     OllamaEmbeddingFunction,
 )
 import ollama
-from config import CHROMA_PATH, DEFAULT_EMBEDDING, DEFAULT_LLM
+from google import genai
+from google.genai import types
+from config import CHROMA_PATH, DEFAULT_EMBEDDING, DEFAULT_ANS_LLM
 
 def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
     '''Retrieve top_k contexts similar to query'''
@@ -24,21 +26,29 @@ def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
         "distances": results['distances'][0]
     }
 
-def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_LLM) -> dict:
+def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_ANS_LLM) -> dict:
     '''Retrieve top_k contexts, and ask LLM to generate an answer'''
     retrieved = retrieve(query, col_name, top_k)
     chunks_str = ''
     for chunk in retrieved['chunks']:
         chunks_str = chunks_str + '---\n' + chunk
     prompt=f"Concisely answer the question in Query based only on the information in Context.  If you don't know the answer, just say 'I don't know'.\nQuery: {query}\nContext: {chunks_str.lstrip()}\nAnswer: "
-    #print(prompt)
-    ans = ollama.generate(
-        model=model,
-        prompt=prompt
-    )
+    if "gemini" in model:
+        genai_client = genai.Client()
+        response = genai_client.models.generate_content(
+            model=model, contents=prompt,
+            config=types.GenerateContentConfig(temperature=0))
+        ans = response.text
+    else:
+        response = ollama.generate(
+            model=model,
+            prompt=prompt,
+            options={'temperature': 0, 'seed': 42}
+        )
+        ans = response.response
     return {
         "query": query,
-        "answer": ans['response'],
+        "answer": ans,
         "ids": retrieved['ids'],
         "chunks": retrieved['chunks'],
         "distances": retrieved['distances']

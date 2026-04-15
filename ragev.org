@@ -26,11 +26,13 @@ You are a senior engineer and guide a junior engineer (me) to learn RAG system. 
 - Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
 - Created a helper cli_chroma() to view documents
 - Setup rcopy scripts to N150 at py/ragev, and git push to https://github.com/achiwa912/ragev
-- Claude generated 20 questions with 3 keywords each and expected_answer.
+- Claude generated 20 questions with 3 keywords each and expected_answer > will use only 10
 - Wrote retrieve.py (retrieve() and answer())
 - Wrote eval.py - Minimum set of Recall@K, MRR, Faithfulness, Correcness
+- Implemented Gemini API for answer, correctness and faithfulness.  Gemini is more stable that ollama8b
+- Set temperature=0 (and seed=42 for Ollama) -> stabilized both
 === Working on:
-- Might want to reduce questions to 10.  LLM unstable.  Might want to try Gemini API
+- What else to consider/implement before moving on to eval, changing parameters, etc.?
 #+end_src
 
 - python
@@ -172,6 +174,8 @@ ollama pull llama3.1:8b
 For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
 The doc:
 #+end_src
+
+*** Eval scorers
 - Faithfulness
   - https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/
 - Prompt to ask Faithfulness and Correctness prompts for ChatGPT
@@ -194,4 +198,28 @@ Answer: {answer}
 
 Is the answer correct given the reference?
 Reply ONLY: YES or NO
+#+end_src
+- LLM not stable
+#+begin_src 
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.50 Correctness: 0.70
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.50 Correctness: 0.70
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.70 Correctness: 0.80
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.70 Correctness: 0.70
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.70 Correctness: 0.80
+
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.70 Correctness: 0.60
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.60 Correctness: 0.70
+#+end_src
+
+**** questions
+- OK: 1, 2, 5, 6, 10, 14, 15, 17, 19, 20
+- Mmm: 4, 8, 9, 11, 13
+- Wrong: 3, 7, 12, 16, 18
+
+**** Gemini API
+- https://ai.google.dev/gemini-api/docs/quickstart
+#+begin_src 
+pip install -U google-genai
 #+end_src

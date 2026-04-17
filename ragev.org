@@ -2,8 +2,8 @@
 
 #+begin_src 
 I'm working on a personal RAG evaluation project with you (draft; will change):
-- embed models - all-minilm, nomic-embed-text
-- LLM models - llama3.2:3b, maybe add 7b/8b models and/or Gemini API
+- embed models - all-minilm, nomic-embed-text, qwen3-embedding:0.6b
+- LLM models - llama3.2:8b, Gemini API
 - vector DB - ChromaDB, may or may not try Qdrant
 - dataset
   - https://github.com/achiwa912/vbs/blob/main/README.org -> data/org/vbs.org
@@ -11,12 +11,12 @@ I'm working on a personal RAG evaluation project with you (draft; will change):
   - https://blog.achiwa.co.uk/posts/advprompt/ -> data/org/advanced.org
 - dev environment
   - M1 Pro Mac (10-core, 32GB RAM) — primary dev/test, fan-sensitive
-  - N150 homelab, Ubuntu on Proxmox (11GB RAM) — git origin, rsync target only (too slow for LLM inference)
-- python scripts - ingest.py, retrieve.py, eval.py, etc.
+  - N150 homelab, Ubuntu on Proxmox (11GB RAM) — git origin, rsync target only (too slow without GPU)
+- python scripts - ingest.py, config.py, retrieve.py, eval.py, etc.
 - parameters - chunk size, overlap size, top-k
 - scorers - recall@K (approx w/ keywords), MRR, faithfulness, answer correctness
-=== Instruction to you:
-You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you have questions on this prompt, ask.  We just continue my learning.  If you are ready, just say today's highlight/hints in less than 5 lines.
+=== Instruction to Claude:
+You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you are ready, just say today's highlight/hints in less than 5 lines.
 === Done:
 - Decided to start with a simple size-based chunking; will revisit header-based later
 - collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
@@ -27,13 +27,16 @@ You are a senior engineer and guide a junior engineer (me) to learn RAG system. 
 - Implemented Gemini API for answer, correctness and faithfulness.
 - Set temperature=0, seed=123 -> stabilized both gemini and ollama
 - Fixed a bug:  For recall@k and reciprocal_rank to replace '-' or '_' to ' '
-- Eval done for size and overlap.  s600_o60 winner.
+- Eval done for size and overlap.  s600_o60 (chars, not tokens) winner.
 - Eval done for top_k.  6 winner.
 - Eval done for model that answers between ollama & gemini.  more or less the same
 - Implemented CoT prompts for faithfulness and correctness, tweaked them
 - Lots of 503s from Gemini APIs -> added retries
+- Implemented context-based (org files only) splitter -> Same or bit worse than size-based
+- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompt looks reasonable.  Possibley losing context.
+- Implemented subsplit long sections to context-based (s600, o60) ->  Winner.
 === Working on:
-- Thinking what's remaining
+- What's next?
 #+end_src
 
 - python
@@ -335,3 +338,181 @@ Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.98 Correctness: 0.79
 
 - Lots of 503s from Gemini API -> retry logic
 
+*** Embed swap
+- Qwen3-Embedding-0.6B looks good
+#+begin_src 
+ollama pull qwen3-embedding:0.6b
+#+end_src
+
+#+begin_src 
+(ve) ~/py/ragev % ollama list
+NAME                       ID              SIZE      MODIFIED    
+qwen3-embedding:0.6b       ac6da0dfba84    639 MB    2 hours ago    
+llama3.1:8b                46e0c10c039e    4.9 GB    5 days ago     
+nomic-embed-text:latest    0a109f422b47    274 MB    12 days ago    
+llama3.2:3b                a80c4f17acd5    2.0 GB    2 weeks ago    
+all-minilm:latest          1b226e2802db    45 MB     2 weeks ago    
+
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.98 Correctness: 0.79
+=== nom_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.58, MRR: 0.54, Faithfulness: 0.80 Correctness: 0.50
+Added prefix -> faithfulness worsen
+Mean: recall@k: 0.62, MRR: 0.66, Faithfulness: 0.64 Correctness: 0.49
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+#+end_src
+-> winner: qwen3 (but not much)
+-> nomic is worse than all-minilm. Adding prefix doesn't change much.
+
+*** context-based split & ingest
+
+#+begin_src 
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+=== qwe_context 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.88, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.73
+#+end_src
+-> Not very impressive. Seems size-based (size=600, overlap=60), topk=6 is already good enough.
+
+*** Query transformation for vector DB
+
+#+begin_src 
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False True
+Mean: recall@k: 0.82, MRR: 0.72, Faithfulness: 0.88 Correctness: 0.73
+#+end_src
+
+
+#+begin_src 
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False True
+Trans: PREV acronym purpose
+Exception from  Gemini 1, waiting 1.1s
+Exception from  Gemini 2, waiting 2.4s
+Exception from  Gemini 1, waiting 1.5s
+q01: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: ReAct framework, reasoning loop
+q02: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: HITL HOTL difference
+q03: recall@k: 0.00, RR: 0.00 Faithfulness: 0.0 Correctness: 0.0
+Trans: LLM long prompt performance issues
+q04: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: scratch pad effect synthesis patterns
+q05: recall@k: 0.00, RR: 0.00 Faithfulness: 0.0 Correctness: 0.0
+Trans: mini PC homelab purchase cost
+q06: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 0.4
+Trans: homelab server hypervisor choice reason
+q07: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+Trans: Caddy web server killer feature
+q08: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+Trans: Immich AI features
+q09: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: Pi-hole deployment homelab
+q10: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+Trans: DDNS, author tool
+q11: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 0.7
+Trans: RomM lightweight server
+q12: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: vocaBull, practice modes
+q13: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 1.0
+Trans: Shifting Learning Window vocaBull
+q14: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+Trans: vocaBull flashcard practice 'knew it!' button
+q15: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+Trans: vocaBull file load format
+q16: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 0.8
+Trans: vocaBull Export all feature save format
+q17: recall@k: 1.00, RR: 0.50 Faithfulness: 0.8 Correctness: 1.0
+Exception from  Gemini 1, waiting 1.1s
+Trans: Immich internet exposure security measures
+Exception from  Gemini 1, waiting 1.3s
+q18: recall@k: 1.00, RR: 1.00 Faithfulness: 0.7 Correctness: 0.7
+Trans: LLM reasoning patterns PREV ReAct Self-Ask comparison combination
+q19: recall@k: 0.00, RR: 0.00 Faithfulness: 1.0 Correctness: 0.4
+Trans: AceMagic mini PC malware, author mitigation, OS replacement
+q20: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+Mean: recall@k: 0.82, MRR: 0.72, Faithfulness: 0.88 Correctness: 0.73
+#+end_src
+
+#+begin_src 
+q03: recall@k: 0.00, RR: 0.00 Faithfulness: 0.0 Correctness: 0.0
+    {
+        "id": "q03",
+        "query": "What is the difference between HITL and HOTL?",
+        "keywords": ["Human-in-the-loop", "Human-on-the-loop", "checkpoint"],
+        "reference_answer": "Human-in-the-loop (HITL) means the pipeline stops until a human approves, while Human-on-the-loop (HOTL) means the pipeline continues but logs state so that a human can check or audit it later."
+    },
+Trans: HITL HOTL difference
+===
+q05: recall@k: 0.00, RR: 0.00 Faithfulness: 0.0 Correctness: 0.0
+    {
+        "id": "q05",
+        "query": "What is the scratch pad effect in synthesis patterns?",
+        "keywords": ["intermediate outputs", "hallucinations", "thinking state"],
+        "reference_answer": "The scratch pad effect refers to displaying intermediate outputs at each stage so the LLM can manage its thinking state — its output acts as its input. Without this, if the template says give me the final answer only, the LLM might lose track and produce hallucinations."
+    },
+Trans: scratch pad effect synthesis patterns
+===
+q19: recall@k: 0.00, RR: 0.00 Faithfulness: 1.0 Correctness: 0.4
+Trans: LLM reasoning patterns PREV ReAct Self-Ask comparison combination
+    {
+        "id": "q19",
+        "query": "Why are PREV, ReAct, and Self-Ask considered different patterns even though all three address LLMs jumping to conclusions, and can they be combined?",
+        "keywords": ["self-criticism", "knowledge gaps", "logic gaps"],
+        "reference_answer": "They address different weaknesses: PREV fixes lack of self-criticism by forcing the LLM to verify what it did; ReAct fixes knowledge gaps by retrieving new information and reflecting it in later steps; Self-Ask fixes logic gaps by adding structure to reasoning. They are different and can even be combined for reasonably complex tasks."
+    },
+#+end_src
+
+*** Disabled query trans again, but keep section-based w/ subsplitting large sections
+
+#+begin_src 
+Size-based (size=600, overlap=60)
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+
+Context-based
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+
+Context-based + large section subsplit(size=600, overlap=60)
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
+Mean: recall@k: 0.93, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
+#+end_src
+
+#+begin_src 
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
+q01: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q02: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q03: recall@k: 0.67, RR: 0.17 Faithfulness: 1.0 Correctness: 1.0
+q04: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q05: recall@k: 1.00, RR: 0.25 Faithfulness: 1.0 Correctness: 1.0
+q06: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 0.4
+q07: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.6
+q08: recall@k: 1.00, RR: 0.50 Faithfulness: 0.8 Correctness: 0.8
+q09: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q10: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+q11: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.7
+q12: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q13: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 1.0
+q14: recall@k: 1.00, RR: 1.00 Faithfulness: 0.8 Correctness: 0.8
+q15: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q16: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q17: recall@k: 1.00, RR: 0.50 Faithfulness: 1.0 Correctness: 0.8
+q18: recall@k: 0.67, RR: 1.00 Faithfulness: 1.0 Correctness: 0.4
+q19: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 1.0
+q20: recall@k: 1.00, RR: 1.00 Faithfulness: 1.0 Correctness: 0.8
+Mean: recall@k: 0.93, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
+#+end_src
+
+#+begin_src 
+Two directions worth researching: cross-encoder reranking and hybrid search (dense + BM25). Which interests you first?
+#+end_src
+
+- Verify if keywords really exist in the org files
+#+begin_src 
+(ve) ~/py/ragev % python keywords_checker.py
+mistakes accumulate in q04 not found
+#+end_src

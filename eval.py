@@ -5,9 +5,10 @@ import chromadb
 import ollama
 from google import genai
 from google.genai import types
-from config import DEFAULT_EVAL_LLM, DEFAULT_ANS_LLM, RESULTS_PATH, genai_client
+from config import DEFAULT_EVAL_LLM, DEFAULT_ANS_LLM, DEFAULT_EMBEDDING, RESULTS_PATH, genai_client
 from questions import questions_keywords
 from retrieve import answer, retrieve, gemini_retry
+
 def recallk(qidx: int, chunks: list[str]) ->float:
     '''Recall@K.  Approximation using keywords'''
     keywords = questions_keywords[qidx]['keywords']
@@ -16,6 +17,8 @@ def recallk(qidx: int, chunks: list[str]) ->float:
     for keyword in keywords:
         keyword = keyword.lower().translate(trans)
         for chunk in chunks:
+            if keyword == 'mistakes accumulate':
+                breakpoint()
             if keyword in chunk.lower().translate(trans):
                 score += 1
                 break
@@ -132,11 +135,11 @@ def correctness(query: str, answer: str, ref_ans: str, model: str) ->float:
     return 0.0
 
 
-def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_eval: str=DEFAULT_EVAL_LLM, retrieve_only: bool=False):
+def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_eval: str=DEFAULT_EVAL_LLM, model_embed=DEFAULT_EMBEDDING, retrieve_only: bool=False, qtrans: bool=False):
     eval_result = []
     recallk_sum = rr_sum = ff_sum = correct_sum = 0.0
     filename = f'{RESULTS_PATH}/eval_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jsonl'
-    print('===', col_name, top_k, model_ans, model_eval, retrieve_only)
+    print(f"=== {col_name}, top_k={top_k}, ans={model_ans}, eval={model_eval}, retrieve_only={retrieve_only}, query trans={qtrans}")
     with open(filename, 'w', encoding='utf-8') as f:
         for i, question in enumerate(questions_keywords):
             eval_single = {}
@@ -146,7 +149,7 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
                 result = retrieve(question['query'], col_name, top_k=top_k)
                 result['answer'] = 'N/A'
             else:
-                result = answer(question['query'], col_name, top_k=top_k, model=model_ans)
+                result = answer(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, qtrans=qtrans)
                 eval_single['faithfulness'] = faithfulness(
                     result['chunks'], result['answer'], model=model_eval)
                 ff_sum += eval_single['faithfulness']
@@ -169,6 +172,7 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
                 'keywords': question['keywords'],
                 'answer': result['answer'],
                 'reference_answer': question['reference_answer'],
+                'distances': result['distances'],
                 'chunks': result['chunks']
             }
             f.write(json.dumps(record) + "\n")
@@ -176,4 +180,5 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
         print(f"Mean: recall@k: {(recallk_sum/len(questions_keywords)):.2f}, MRR: {(rr_sum/len(questions_keywords)):.2f}, Faithfulness: {ff_sum/len(questions_keywords):.2f} Correctness: {correct_sum/len(questions_keywords):.2f}")
 
 # eval('all_s100_o10', 3, model_ans="gemini-2.5-flash-lite", model_eval="gemini-2.5-flash-lite", retrieve_only=False)
-eval()
+# eval('nom_s600_o60', model_embed='nomic-embed-text:latest')
+eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b', qtrans=False)

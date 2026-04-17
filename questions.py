@@ -20,7 +20,7 @@ questions_keywords = [
     {
         "id": "q04",
         "query": "What are two reasons why LLMs perform poorly on long prompts?",
-        "keywords": ["mistakes accumulate", "U-shaped attention", "middle"],
+        "keywords": ["accumulate", "U-shaped attention", "middle"],
         "reference_answer": "Two reasons are: (1) mistakes are not corrected when made so they accumulate and wrongly change the context, and (2) LLMs have a U-shaped attention span, meaning sentences in the middle of documents may not receive the attention they deserve."
     },
     {

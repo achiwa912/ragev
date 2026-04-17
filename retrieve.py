@@ -9,7 +9,12 @@ from google import genai
 from google.genai import types
 from config import CHROMA_PATH, DEFAULT_EMBEDDING, DEFAULT_ANS_LLM, genai_client
 
-def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
+QTRANS_PROMPT = """You are a vector DB expert.  Tranform the user query to a more vector-DB-friendly transformed query, removing conversational noise and possibly adding 1-3 keyeords.  Return only the transformed query string you generated.
+
+User query: {query}
+Transformed query: """
+
+def retrieve(query: str, col_name: str, top_k: int, model_ans: str, model_embed: str, qtrans: bool) -> dict:
     '''Retrieve top_k contexts similar to query'''
     try:
         client = chromadb.PersistentClient(path=CHROMA_PATH)
@@ -17,8 +22,25 @@ def retrieve(query: str, col_name: str, top_k: int=3) -> dict:
     except Exception as e:
         raise(f'Does ChromaDB/{col_name} exist?: {e}')
 
+    if qtrans:
+        prompt = QTRANS_PROMPT.format(query=query)
+        if "gemini" in model_ans:
+            response = gemini_retry(model_ans, prompt)
+            text = response.text
+        else:
+            response = ollama.generate(
+                model=model_ans,
+                prompt=prompt,
+                options={'temperature': 0, 'seed': 123}
+            )
+            text = response.response
+        print(f'Trans: {text}')  # debug
+    else:
+        text = query
+
+    text = "search_query: " + text if 'nomic' in model_embed else text
     results = col.query(
-        query_texts=query,
+        query_texts=[text],
         n_results=top_k
     )
     return {
@@ -45,19 +67,19 @@ def gemini_retry(model: str, prompt: str, max_retries: int=3):
             time.sleep(wait)
                 
 
-def answer(query: str, col_name: str, top_k: int=3, model=DEFAULT_ANS_LLM) -> dict:
+def answer(query: str, col_name: str, top_k: int=3, model_ans: str=DEFAULT_ANS_LLM, model_embed: str=DEFAULT_EMBEDDING, qtrans: bool=False) -> dict:
     '''Retrieve top_k contexts, and ask LLM to generate an answer'''
-    retrieved = retrieve(query, col_name, top_k)
+    retrieved = retrieve(query, col_name, top_k, model_ans, model_embed, qtrans)
     chunks_str = ''
     for chunk in retrieved['chunks']:
         chunks_str = chunks_str + '---\n' + chunk
     prompt=f"Concisely answer the question in Query based only on the information in Context.  If you don't know the answer, just say 'I don't know'.\nQuery: {query}\nContext: {chunks_str.lstrip()}\nAnswer: "
-    if "gemini" in model:
-        response = gemini_retry(model, prompt)
+    if "gemini" in model_ans:
+        response = gemini_retry(model_ans, prompt)
         ans = response.text
     else:
         response = ollama.generate(
-            model=model,
+            model=model_ans,
             prompt=prompt,
             options={'temperature': 0, 'seed': 123}
         )

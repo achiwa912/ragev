@@ -13,15 +13,41 @@ def split_file_by_size(path_str: str, size: int, overlap: int) -> list[str]:
     idx = 0
     with open(path_str, 'r') as f:  # safe for unicodes
         text = f.read()
-        while True:
-            chunks.append(text[idx:idx+size])
-            if idx+size >= len(text):
-                break
-            idx += size - overlap
+        return split_text_by_size(text, size, overlap)
+
+
+def split_text_by_size(text: str, size: int, overlap: int):
+    if overlap >= size:
+        raise Exception(f"overlap:{overlap} >= size:{size}")
+    chunks = []
+    idx = 0
+    while True:
+        chunks.append(text[idx:idx+size])
+        if idx+size >= len(text):
+            break
+        idx += size - overlap
+    return chunks
+    
+    
+def split_file_by_context(path_str: str, size: int, overlap: int) ->list[str]:
+    '''split an org file into chunks by headers.
+    A large chunk is further split into subchunks by size and overlap'''
+    with open(path_str, 'r', encoding='utf-8') as f:
+        chunks = []
+        chunk = ''
+        for line in f:
+            if line.startswith('*'):
+                if chunk.strip():
+                    chunks.extend(split_text_by_size(chunk, size, overlap))
+                chunk = line
+            else:
+                chunk += line
+        chunks.extend(split_text_by_size(chunk, size, overlap))
+        # print(len(chunks), max(len(c) for c in chunks)) # debug
         return chunks
     
 
-def ingest_file(collection: Collection, path_str: str, chunks: list[str]):
+def ingest_file(collection: Collection, path_str: str, chunks: list[str], embed_str: str):
     '''embed/add chunks into collection'''
     ids = []
     metadatas = []
@@ -36,16 +62,24 @@ def ingest_file(collection: Collection, path_str: str, chunks: list[str]):
     print(f'Embedding {path_str}')
     while end < len(chunks):
         end = len(chunks) if start+batch_size>len(chunks) else start+batch_size
+        if 'nomic' in embed_str:
+            docs = ["search_document: " + chunk for chunk in chunks[start:end]]
+        else:
+            docs = chunks[start:end]
         try:
-            collection.add(ids=ids[start:end], documents=chunks[start:end],
+            collection.add(ids=ids[start:end], documents=docs,
                            metadatas=metadatas[start:end])
         except:
             print(f'Batch failed, falling back on chunk-by-chunk: {start}-{end}')
             middle = start
             while middle < end:
+                if 'nomic' in embed_str:
+                    docs = ["search_document: " + chunks[middle]]
+                else:
+                    docs = chunks[middle:middle+1]
                 try:
                     collection.add(ids=ids[middle:middle+1],
-                                   documents=chunks[middle:middle+1],
+                                   documents=docs,
                                    metadatas=metadatas[middle:middle+1])
                 except Exception as e:
                     print(f'Skipping {ids[middle]} - {chunks[middle]}')
@@ -57,7 +91,7 @@ def ingest_file(collection: Collection, path_str: str, chunks: list[str]):
         start = end
 
 
-def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING):
+def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING, context_based: bool=False):
     '''
     re-create a collection and embed files
     collection naming: <embed_str>_s<size>_o<overlap>
@@ -67,7 +101,10 @@ def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING):
     except e:
         print(f'Initializing ChromaDB failed: {e}')
 
-    coll_str = f'{embed_str[:3]}_s{size}_o{overlap}'
+    if context_based:
+        coll_str = f'{embed_str[:3]}_s{size}_o{overlap}_context'
+    else:
+        coll_str = f'{embed_str[:3]}_s{size}_o{overlap}_sizeonly'
 
     # for idempotency
     try:
@@ -80,7 +117,7 @@ def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING):
         name=coll_str,
         embedding_function=OllamaEmbeddingFunction(
             url="http://localhost:11434",
-            model_name=embed_str,
+            model_name=embed_str
         ),
         configuration={
             "hnsw": {
@@ -91,13 +128,16 @@ def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING):
     )
 
     for path_str in SOURCE_DOCUMENTS:
-        chunks = split_file_by_size(path_str, size, overlap)
-        ingest_file(collection, path_str, chunks)
+        if context_based:
+            chunks = split_file_by_context(path_str, size, overlap)
+        else:
+            chunks = split_file_by_size(path_str, size, overlap)
+        ingest_file(collection, path_str, chunks, embed_str)
 
 
 def main():
     breakpoint()
-    # ingest(400, 40)
+    # ingest(600, 60, 'qwen3-embedding:0.6b', context_based=True)
         
 if __name__ == "__main__":
     main()

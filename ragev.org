@@ -1,7 +1,7 @@
 #+TITLE: RAG Evaluation - ragev
 
 #+begin_src 
-I'm working on a personal RAG evaluation project with you (draft; will change):
+I'm working on a personal RAG evaluation project: ragev with you:
 - embed models - all-minilm, nomic-embed-text, qwen3-embedding:0.6b
 - LLM models - llama3.2:8b, Gemini API
 - vector DB - ChromaDB, may or may not try Qdrant
@@ -37,6 +37,43 @@ You are a senior engineer and guide a junior engineer (me) to learn RAG system. 
 - Implemented subsplit long sections to context-based (s600, o60) ->  Winner.
 === Working on:
 - What's next?
+#+end_src
+
+#+begin_src 
+I'm working on a personal RAG evaluation project: ragev:
+- embed models - all-minilm, nomic-embed-text, qwen3-embedding:0.6b
+- LLM models - llama3.2:8b, Gemini API
+- vector DB - ChromaDB, may or may not try Qdrant
+- dataset
+  - https://github.com/achiwa912/vbs/blob/main/README.org -> data/org/vbs.org
+  - https://blog.achiwa.co.uk/posts/homelab_minipc/ -> data/org/homelab.org
+  - https://blog.achiwa.co.uk/posts/advprompt/ -> data/org/advanced.org
+- dev environment
+  - M1 Pro Mac (10-core, 32GB RAM) — primary dev/test, fan-sensitive
+  - N150 homelab, Ubuntu on Proxmox (11GB RAM for Ubuntu) — git origin, rsync target only (too slow without GPU)
+- python scripts - ingest.py, config.py, retrieve.py, eval.py, etc.
+- parameters - chunk size, overlap size, top-k
+- scorers - recall@K (approx w/ keywords), MRR, faithfulness, answer correctness
+=== Done:
+- Decided to start with a simple size-based chunking; will revisit header-based later
+- collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
+- Wrote ingest.py - embed the three files with size and overlap (w/ cosine)
+- Claude generated 20 questions with 3 keywords each and expected_answer > will use only 10
+- Wrote retrieve.py (retrieve() and answer())
+- Wrote eval.py - Minimum set of Recall@K, MRR, Faithfulness, Correcness
+- Implemented Gemini API for answer, correctness and faithfulness.
+- Set temperature=0, seed=123 -> stabilized both gemini and ollama
+- Fixed a bug:  For recall@k and reciprocal_rank to replace '-' or '_' to ' '
+- Eval done for size and overlap.  s600_o60 (chars, not tokens) winner.
+- Eval done for top_k.  6 winner.
+- Eval done for model that answers between ollama & gemini.  more or less the same
+- Implemented CoT prompts for faithfulness and correctness, tweaked them
+- Lots of 503s from Gemini APIs -> added retries
+- Implemented context-based (org files only) splitter -> Same or bit worse than size-based
+- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompt looks reasonable.  Possibley losing context.
+- Implemented subsplit long sections to context-based (s600, o60) ->  Winner.
+=== Working on:
+- What's next?  Or write a README and/or a blog post.
 #+end_src
 
 - python

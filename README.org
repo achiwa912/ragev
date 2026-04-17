@@ -1,0 +1,301 @@
+#+TITLE: RAG Evaluation
+
+* Overview
+Conducted a RAG system evaluation with these parameters changed:
+- document splitters; size-based, context-based
+- embedding models; all-minilm, nomic, qwen3 0.6b
+- LLM models; llama3.1:8b, gemini-2.5-flash-lite
+
+Key takeaways include:
+- As a splitter, context-based with sub-splitting large sections was optimal
+- Embedding model matters.  qwen3 beat all-minilm and nomic as expected
+- Question transformation didn't improve the numbers
+
+* Test environment
+** Machines
+*** AceMagic V1
+- Intel N150, 16GB RAM, 1TB SSD
+- Ubuntu 24.04.2 LTS (12GB RAM assigned) on Proxmox 8.4.0
+  - GPU not available
+
+** Vector DB and embedding/LLM models
+*** Vector DB for embedding
+- ChromaDB 1.5.7
+- Collection name format: <embed_model>__s<size>_o<overlap>[_context]
+  - embed_model: all: all-minilm:latest, nom: nomic-embed-text:latest, qwe: qwen3-embedding:0.6b
+  - size: chunk size in number of characters
+  - overlap: overlap in number of characters
+  - _context: optional; use context-based splitter (note: support .org files only)
+
+*** Ollama models
+#+begin_src 
+(ve) ~/py/ragev % ollama list
+NAME                       ID              SIZE      MODIFIED     
+qwen3-embedding:0.6b       ac6da0dfba84    639 MB    25 hours ago    
+llama3.1:8b                46e0c10c039e    4.9 GB    6 days ago      
+nomic-embed-text:latest    0a109f422b47    274 MB    13 days ago     
+llama3.2:3b                a80c4f17acd5    2.0 GB    3 weeks ago     
+all-minilm:latest          1b226e2802db    45 MB     3 weeks ago     
+#+end_src
+
+*** Gemini model (via API)
+- gemini-2.5-flash-lite
+
+** Files and directories
+*** Files
+- cli_chroma.py - show collection list, etc. for ChromaDB
+- config.py - config parameters
+- eval.py - eval() runs a test round (eg, 20 questions)
+- ingest.py - ingest() embed data files (3 .org files) to ChromaDB
+- keywords_checker.py - check if all keywords are in the data files (debug)
+- questions.py, questions.orig - the questions
+- retrieve.py 
+  - retrieve() retrieves similar chunks to user question
+  - answer() LLM generates answer based on retrieved chunks and the question
+
+*** Directories
+- chroma/ - chroma database files
+- results/ - test logs in jsonl
+  - eval_YYYYMMDD_HHMMSS.jsonl eg, eval_20260401_195903.jsonl
+- data/org/ - data files
+
+* Tests
+** Parameters
+- Chunk splitters
+  - Size-based
+    - Size: specify chunk size in number in characters
+    - Overlap: how many characters are overlapped between 2 continuous chunks
+  - Context-based: split by .org headers (ie, startswith('*'))
+  - Context-based + sub-split large sections
+- top_k: how many chunks similar to a query are retrieved
+- embedding model: all-minilm, nomic-embed-text or qwen3-embedding:0.6b
+- answer model:  gemini-2.5-flash-lite or lama3.1:8b
+- eval model: gemini-2.5-flash-lite or lama3.1:8b
+- question transformation: ask LLM to transform the question to be more vector DB friendly (ie, remove noise and add keywords that LLM knows)
+
+** Questions
+- Asked Claude to generate questions.  Prompt used:
+#+begin_src 
+For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
+The doc:
+#+end_src
+- Checked and updated manually
+  - "expected_answer" -> "reference_answer"
+  - changed some keywords (eg, not appear in data files)
+  - asked Claude to re-generate 3 incorrect questions
+
+** Scorers
+I used four scorers, two to see retrieval quality and two for end-to-end quality.
+*** Retrieval
+- Recall@K - percentage of keywords appear in top_k chunks
+  - Used approximation with keywords
+- MRR (Mean Reciprocal Rank) - how early in (top_k) chunks any keyword appear
+
+*** End-to-end
+- Faithfulness - ask LLM to rate if answer is generated solely from top_k chunks
+- Answer correctness - ask LLM if the answer answers question
+
+* How to run
+- Install Python
+  - pyenv and venv recommended
+#+begin_src 
+pyenv install 3.14.0
+pyenv global 3.14.0
+cd ragev
+python -m venv ve
+source ve/bin/activate
+#+end_src
+- Install ollama and models
+#+begin_src 
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull all-minilm:latest
+ollama pull nomic-embed-text
+ollama pull llama3.1:8b
+ollama pull qwen3-embedding:0.6b
+ollama list # to verify
+#+end_src
+- pip install
+#+begin_src 
+pip install chromadb
+pip install ollama
+pip install -U google-genai
+#+end_src
+- git clone ragev repo
+#+begin_src 
+git clone git@github.com:achiwa912/ragev.git
+#+end_src
+- prepare data files and other directories
+#+begin_src 
+mkdir chroma
+mkdir results
+mkdir data
+cd data
+mkdir org
+cd org
+wget https://github.com/achiwa912/vbs/blob/main/README.org
+mv README.org vbs.org
+#+end_src
+- I also used the blog entries from the source .org file
+  - https://blog.achiwa.co.uk/posts/homelab_minipc/ -> homelab.org
+  - https://blog.achiwa.co.uk/posts/advprompt/ -> advanced.org
+- Embed
+#+begin_src 
+python ingest.py
+-> stops at breakpoint() and run:
+ingest(600, 60, 'qwen3-embedding:0.6b', context_based=True)
+#+end_src
+- Run an eval round
+#+begin_src 
+python eval.py
+-> it will run (now; will change):
+eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b', qtrans=False)
+#+end_src
+
+* Results (tentative; to be updated)
+
+*** size, overlap (q01-q10)
+- note: failed ingesting chunks for s1000 and s1200
+#+begin_src 
+=== all_s100_o10 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.30, MRR: 0.40, Faithfulness: 0.70 Correctness: 0.40
+=== all_s200_o20 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.03, MRR: 0.10, Faithfulness: 0.00 Correctness: 0.00
+=== all_s400_o40 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.75, Faithfulness: 0.80 Correctness: 0.70
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s800_o80 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.77, MRR: 0.72, Faithfulness: 0.70 Correctness: 0.70
+=== all_s1000_o100 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.70, Faithfulness: 0.80 Correctness: 0.70
+=== all_s1200_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.60, MRR: 0.65, Faithfulness: 0.70 Correctness: 0.60
+#+end_src
+-> winner: s600_o60
+#+begin_src 
+=== all_s600_o0 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.70, MRR: 0.73, Faithfulness: 0.80 Correctness: 0.80
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.73, MRR: 0.83, Faithfulness: 0.90 Correctness: 0.80
+#+end_src
+-> winner: s600_o60
+
+*** top_k (q01-q10)
+#+begin_src 
+=== all_s600_o60 1 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.47, MRR: 0.70, Faithfulness: 0.60 Correctness: 0.40
+=== all_s600_o60 2 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.70, MRR: 0.75, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o60 4 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.80
+=== all_s600_o60 5 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 8 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+=== all_s600_o60 10 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 0.70 Correctness: 0.80
+#+end_src
+-> winner 6
+
+*** LLM model for answer
+- Change model_ans llama3.1:8b vs gemini-2.5-flash-lite
+#+begin_src 
+=== all_s600_o60 6 llama3.1:8b gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.90
+
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
+#+end_src
+-> the diffs are q07 and q10.  Both are false negative.  gemini didn't like it's own answers thought they are correct.  It liked ollama answers.
+
+*** Embed swap
+- Qwen3-Embedding-0.6B looks good
+#+begin_src 
+ollama pull qwen3-embedding:0.6b
+#+end_src
+
+#+begin_src 
+(ve) ~/py/ragev % ollama list
+NAME                       ID              SIZE      MODIFIED    
+qwen3-embedding:0.6b       ac6da0dfba84    639 MB    2 hours ago    
+llama3.1:8b                46e0c10c039e    4.9 GB    5 days ago     
+nomic-embed-text:latest    0a109f422b47    274 MB    12 days ago    
+llama3.2:3b                a80c4f17acd5    2.0 GB    2 weeks ago    
+all-minilm:latest          1b226e2802db    45 MB     2 weeks ago    
+
+=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.98 Correctness: 0.79
+=== nom_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.58, MRR: 0.54, Faithfulness: 0.80 Correctness: 0.50
+Added prefix -> faithfulness worsen
+Mean: recall@k: 0.62, MRR: 0.66, Faithfulness: 0.64 Correctness: 0.49
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+#+end_src
+-> winner: qwen3 (but not much)
+-> nomic is worse than all-minilm. Adding prefix doesn't change much.
+
+*** context-based split & ingest
+
+#+begin_src 
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+=== qwe_context 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.88, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.73
+#+end_src
+-> Not very impressive. Seems size-based (size=600, overlap=60), topk=6 is already good enough.
+
+*** Query transformation for vector DB
+
+#+begin_src 
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False True
+Mean: recall@k: 0.82, MRR: 0.72, Faithfulness: 0.88 Correctness: 0.73
+#+end_src
+
+*** Disabled query trans again, but keep section-based w/ subsplitting large sections
+
+#+begin_src 
+Size-based (size=600, overlap=60)
+=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+
+Context-based
+=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
+Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
+
+Context-based + large section subsplit(size=600, overlap=60)
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
+Mean: recall@k: 0.93, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
+#+end_src
+
+* Takeaways (to be updated)
+
+** Embedding
+- size=600 & overlap=60 is the sweet spot
+- Context-based splitter with sub-splitting large sections is better than context-based only or size/overlap only
+- Embedding model matters.  qwen3-embedding is the winner.
+
+** Questions
+- LLM was useful to generate questions with keywords and reference answers
+- You need to manually check and update as they may have hallucinations
+
+** Evaluation
+- Prompt matters for better LLM evaluation with faithfulness and correctness.  Introducing CoT (Change of Thoughts) reduced hallucinations
+- Still, you need to look at logs to see if LLM evaluation was correct
+
+** LLM usage
+- To stabilize results, setting temperature (& seed) is important
+- I saw false positives and negatives.  LLMs are not reliable.  Reducing hallucinations is a challenge.  (eg, LLM could use its knowledge, not context to answer questions)
+
+** Vector DB
+- Transforming questions worsen the results.

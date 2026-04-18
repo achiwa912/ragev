@@ -17,8 +17,6 @@ def recallk(qidx: int, chunks: list[str]) ->float:
     for keyword in keywords:
         keyword = keyword.lower().translate(trans)
         for chunk in chunks:
-            if keyword == 'mistakes accumulate':
-                breakpoint()
             if keyword in chunk.lower().translate(trans):
                 score += 1
                 break
@@ -139,14 +137,14 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
     eval_result = []
     recallk_sum = rr_sum = ff_sum = correct_sum = 0.0
     filename = f'{RESULTS_PATH}/eval_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jsonl'
-    print(f"=== {col_name}, top_k={top_k}, ans={model_ans}, eval={model_eval}, retrieve_only={retrieve_only}, query trans={qtrans}")
+    print(f"=== {col_name}, top_k={top_k}, ans={model_ans}, eval={model_eval}, embed={model_embed}, retrieve_only={retrieve_only}, query trans={qtrans}")
     with open(filename, 'w', encoding='utf-8') as f:
         for i, question in enumerate(questions_keywords):
             eval_single = {}
             eval_single['qid'] = question['id']
             eval_single['faithfulness'] = eval_single['correctness'] = 0.0
             if retrieve_only:
-                result = retrieve(question['query'], col_name, top_k=top_k)
+                result = retrieve(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, qtrans=qtrans)
                 result['answer'] = 'N/A'
             else:
                 result = answer(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, qtrans=qtrans)
@@ -179,6 +177,8 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
             f.flush()
         print(f"Mean: recall@k: {(recallk_sum/len(questions_keywords)):.2f}, MRR: {(rr_sum/len(questions_keywords)):.2f}, Faithfulness: {ff_sum/len(questions_keywords):.2f} Correctness: {correct_sum/len(questions_keywords):.2f}")
 
-# eval('all_s100_o10', 3, model_ans="gemini-2.5-flash-lite", model_eval="gemini-2.5-flash-lite", retrieve_only=False)
-# eval('nom_s600_o60', model_embed='nomic-embed-text:latest')
-eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b', qtrans=False)
+# all-minilm:latest, nomic-embed-text:latest, qwen3-embedding:0.6b
+# llama3.1:8b, gemini-2.5-flash-lite
+# eval(col_name='qwe_s600_o60_sizeonly', top_k=3, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', retrieve_only=False, qtrans=False)
+breakpoint()
+

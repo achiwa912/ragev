@@ -20,8 +20,9 @@ def retrieve(query: str, col_name: str, top_k: int, model_ans: str, model_embed:
         client = chromadb.PersistentClient(path=CHROMA_PATH)
         col = client.get_collection(name=col_name)
     except Exception as e:
-        raise(f'Does ChromaDB/{col_name} exist?: {e}')
-
+        print(f'Does ChromaDB collection: {col_name} exist?: {e}')
+        raise e
+    
     if qtrans:
         prompt = QTRANS_PROMPT.format(query=query)
         if "gemini" in model_ans:

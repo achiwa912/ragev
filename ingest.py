@@ -137,8 +137,9 @@ def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING, context_ba
 
 def main():
     breakpoint()
-    # ingest(600, 60, 'qwen3-embedding:0.6b', context_based=True)
-        
+    # ingest(size=600, overlap=60, embed_str='qwen3-embedding:0.6b', context_based=True)
+    # ingest(size=100, overlap=10, embed_str='all-minilm:latest', context_based=False)
+    
 if __name__ == "__main__":
     main()
 

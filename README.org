@@ -151,132 +151,105 @@ python eval.py
 eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b', qtrans=False)
 #+end_src
 
-* Results (tentative; to be updated)
-
-*** size, overlap (q01-q10)
-- note: failed ingesting chunks for s1000 and s1200
+* Results
+*** change chunk size
+  - note: I saw ingest errors for size=1000
 #+begin_src 
-=== all_s100_o10 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.30, MRR: 0.40, Faithfulness: 0.70 Correctness: 0.40
-=== all_s200_o20 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.03, MRR: 0.10, Faithfulness: 0.00 Correctness: 0.00
-=== all_s400_o40 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.73, MRR: 0.75, Faithfulness: 0.80 Correctness: 0.70
-=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
-=== all_s800_o80 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.77, MRR: 0.72, Faithfulness: 0.70 Correctness: 0.70
-=== all_s1000_o100 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.73, MRR: 0.70, Faithfulness: 0.80 Correctness: 0.70
-=== all_s1200_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.60, MRR: 0.65, Faithfulness: 0.70 Correctness: 0.60
+=== all_s100_o10_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.35, MRR: 0.47, Faithfulness: 0.00 Correctness: 0.00
+=== all_s200_o20_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.60, MRR: 0.57, Faithfulness: 0.00 Correctness: 0.00
+=== all_s400_o40_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.77, MRR: 0.79, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s800_o80_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.00 Correctness: 0.00
+=== all_s1000_o100_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.85, MRR: 0.75, Faithfulness: 0.00 Correctness: 0.00
 #+end_src
--> winner: s600_o60
+-> s800, o80 is the winner, close second is s600, o60
+
+*** change overlap
+As I see ingest errors with size=800, overlap>=40, I tested with size=600
 #+begin_src 
-=== all_s600_o0 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.70, MRR: 0.73, Faithfulness: 0.80 Correctness: 0.80
-=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
-=== all_s600_o120 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.73, MRR: 0.83, Faithfulness: 0.90 Correctness: 0.80
+=== all_s600_o0_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.83, MRR: 0.82, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o20_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.70, MRR: 0.77, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o40_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.77, MRR: 0.74, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o80_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.78, MRR: 0.85, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o100_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.73, MRR: 0.77, Faithfulness: 0.00 Correctness: 0.00
 #+end_src
--> winner: s600_o60
+-> s600, o60 (overlap is 10% of size) is the winner
 
-*** top_k (q01-q10)
+*** top_k
 #+begin_src 
-=== all_s600_o60 1 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.47, MRR: 0.70, Faithfulness: 0.60 Correctness: 0.40
-=== all_s600_o60 2 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.70, MRR: 0.75, Faithfulness: 0.90 Correctness: 0.80
-=== all_s600_o60 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 0.90 Correctness: 0.80
-=== all_s600_o60 4 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.80
-=== all_s600_o60 5 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.80, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
-=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
-=== all_s600_o60 8 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
-=== all_s600_o60 10 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 0.70 Correctness: 0.80
+=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=4, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=5, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.87, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=6, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=7, ans=llama3.1:8b, eval=llama3.1:8b, retrieve_only=True, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
+=== all_s600_o60_sizeonly, top_k=8, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
 #+end_src
--> winner 6
+-> top_k>=6 maxed out.
 
-*** LLM model for answer
-- Change model_ans llama3.1:8b vs gemini-2.5-flash-lite
+*** LLM models for answer
+Use gemini for LLM for eval, hoping for better judgment.
 #+begin_src 
-=== all_s600_o60 6 llama3.1:8b gemini-2.5-flash-lite False
-Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.90
-
-=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.87, MRR: 0.82, Faithfulness: 1.00 Correctness: 0.70
-#+end_src
--> the diffs are q07 and q10.  Both are false negative.  gemini didn't like it's own answers thought they are correct.  It liked ollama answers.
-
-*** Embed swap
-- Qwen3-Embedding-0.6B looks good
-#+begin_src 
-ollama pull qwen3-embedding:0.6b
+=== all_s600_o60_sizeonly, top_k=6, ans=llama3.1:8b, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.94 Correctness: 0.72
+=== all_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.98 Correctness: 0.79
 #+end_src
 
+*** Embed models
 #+begin_src 
-(ve) ~/py/ragev % ollama list
-NAME                       ID              SIZE      MODIFIED    
-qwen3-embedding:0.6b       ac6da0dfba84    639 MB    2 hours ago    
-llama3.1:8b                46e0c10c039e    4.9 GB    5 days ago     
-nomic-embed-text:latest    0a109f422b47    274 MB    12 days ago    
-llama3.2:3b                a80c4f17acd5    2.0 GB    2 weeks ago    
-all-minilm:latest          1b226e2802db    45 MB     2 weeks ago    
+=== all_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=all-minilm:latest, retrieve_only=False, query trans=False
+Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.98 Correctness: 0.79
 
-=== all_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.98 Correctness: 0.79
-=== nom_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.58, MRR: 0.54, Faithfulness: 0.80 Correctness: 0.50
-Added prefix -> faithfulness worsen
-Mean: recall@k: 0.62, MRR: 0.66, Faithfulness: 0.64 Correctness: 0.49
-=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+=== nom_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=nomic-embed-text:latest, retrieve_only=False, query trans=False
+Mean: recall@k: 0.63, MRR: 0.66, Faithfulness: 0.64 Correctness: 0.49
+
+=== qwe_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=False
+Mean: recall@k: 0.92, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
 #+end_src
--> winner: qwen3 (but not much)
--> nomic is worse than all-minilm. Adding prefix doesn't change much.
+-> tie all-minilm:latest vs qwen3-embedding:0.6b
+-> somehow nomic was bad
 
-*** context-based split & ingest
-
+*** Contxt-based + sub-split
 #+begin_src 
-=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
-=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
-=== qwe_context 3 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.88, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.73
+=== all_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=all-minilm:latest, retrieve_only=False, query trans=False
+Mean: recall@k: 0.92, MRR: 0.84, Faithfulness: 0.94 Correctness: 0.83
+
+=== nom_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=nomic-embed-text:latest, retrieve_only=False, query trans=False
+Mean: recall@k: 0.73, MRR: 0.61, Faithfulness: 0.76 Correctness: 0.61
+
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=False
+Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
 #+end_src
--> Not very impressive. Seems size-based (size=600, overlap=60), topk=6 is already good enough.
+-> overall winner is qwen3-embedding & context-based + sub-split
+-> MRR drops
 
-*** Query transformation for vector DB
 
-#+begin_src 
-=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
-=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False True
-Mean: recall@k: 0.82, MRR: 0.72, Faithfulness: 0.88 Correctness: 0.73
-#+end_src
 
-*** Disabled query trans again, but keep section-based w/ subsplitting large sections
 
-#+begin_src 
-Size-based (size=600, overlap=60)
-=== qwe_s600_o60 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.90, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
 
-Context-based
-=== qwe_context 6 gemini-2.5-flash-lite gemini-2.5-flash-lite False
-Mean: recall@k: 0.92, MRR: 0.82, Faithfulness: 0.93 Correctness: 0.81
 
-Context-based + large section subsplit(size=600, overlap=60)
-=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
-Mean: recall@k: 0.93, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
-#+end_src
+
+
+
 
 * Takeaways (to be updated)
 

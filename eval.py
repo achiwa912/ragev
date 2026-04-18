@@ -179,6 +179,6 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
 
 # all-minilm:latest, nomic-embed-text:latest, qwen3-embedding:0.6b
 # llama3.1:8b, gemini-2.5-flash-lite
-# eval(col_name='qwe_s600_o60_sizeonly', top_k=3, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', retrieve_only=False, qtrans=False)
+# eval(col_name='qwe_s600_o60_sizeonly', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', retrieve_only=False, qtrans=False)
 breakpoint()
 

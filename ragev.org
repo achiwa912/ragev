@@ -644,3 +644,12 @@ Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
 #+end_src
 -> overall winner is qwen3-embedding & context-based + sub-split
 -> MRR drops
+
+*** Query transformation
+#+begin_src 
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=False
+Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
+
+=== qwe_s600_o60_context, top_k=3, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=True
+Mean: recall@k: 0.67, MRR: 0.64, Faithfulness: 0.66 Correctness: 0.53
+#+end_src

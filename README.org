@@ -153,103 +153,69 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 
 * Results
 *** change chunk size
-  - note: I saw ingest errors for size=1000
-#+begin_src 
-=== all_s100_o10_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.35, MRR: 0.47, Faithfulness: 0.00 Correctness: 0.00
-=== all_s200_o20_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.60, MRR: 0.57, Faithfulness: 0.00 Correctness: 0.00
-=== all_s400_o40_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.77, MRR: 0.79, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s800_o80_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.88, MRR: 0.86, Faithfulness: 0.00 Correctness: 0.00
-=== all_s1000_o100_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.85, MRR: 0.75, Faithfulness: 0.00 Correctness: 0.00
-#+end_src
+- overlap is 1/10 of chunk size
+- top_k=5, embed_model=all-minilm:latest
+- note: I saw ingest errors for size=1000
+
+| size     |  100 |  200 |  400 |  600 |  800 | 1000 |
+| overlap  |   10 |   20 |   40 |   60 |   80 |  100 |
+|----------+------+------+------+------+------+------|
+| recall@k | 0.35 | 0.60 | 0,77 | 0.83 | 0.88 | 0.85 |
+| MRR      | 0.47 | 0.57 |   79 |   89 |   86 |   75 |
 -> s800, o80 is the winner, close second is s600, o60
 
 *** change overlap
-As I see ingest errors with size=800, overlap>=40, I tested with size=600
-#+begin_src 
-=== all_s600_o0_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.83, MRR: 0.82, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o20_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.70, MRR: 0.77, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o40_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.77, MRR: 0.74, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o80_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.78, MRR: 0.85, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o100_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.73, MRR: 0.77, Faithfulness: 0.00 Correctness: 0.00
-#+end_src
+- size=600, top_k=5, embed_model=all-minilm:latest
+- note: as I see ingest errors with size=800, overlap>=40, I tested with size=600
+
+| size     |  600 |  600 |  600 |  600 |  600 |  600 |
+| overlap  |    0 |   20 |   50 |   60 |   80 |  100 |
+|----------+------+------+------+------+------+------|
+| recall@k | 0.83 | 0.70 | 0.77 | 0.83 | 0.78 | 0.73 |
+| MRR      | 0.82 | 0.77 | 0.74 | 0.89 | 0.85 | 0.77 |
 -> s600, o60 (overlap is 10% of size) is the winner
 
 *** top_k
-#+begin_src 
-=== all_s600_o60_sizeonly, top_k=3, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=4, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.83, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=5, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.87, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=6, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=7, ans=llama3.1:8b, eval=llama3.1:8b, retrieve_only=True, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-=== all_s600_o60_sizeonly, top_k=8, ans=all-minilm:latest, eval=all-minilm:latest, retrieve_only=True, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.00 Correctness: 0.00
-#+end_src
+- size=600, overlap=60, embed_model=all-minilm:latest
+
+| top_k    |    3 |    4 |    5 |    6 |    7 |    8 |
+|----------+------+------+------+------+------+------|
+| recall@k | 0.83 | 0.83 | 0.87 | 0.90 | 0.90 | 0.90 |
+| MRR      | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 |
 -> top_k>=6 maxed out.
 
 *** LLM models for answer
-Use gemini for LLM for eval, hoping for better judgment.
-#+begin_src 
-=== all_s600_o60_sizeonly, top_k=6, ans=llama3.1:8b, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.94 Correctness: 0.72
-=== all_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, retrieve_only=False, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.98 Correctness: 0.79
-#+end_src
+- note: using gemini for LLM for eval, hoping for better judgment.
+| answer model          | recall@k |  MRR | Faithfulness | Correnctness |
+|-----------------------+----------+------+--------------+--------------|
+| llama3.1:8b           |     0.90 | 0.89 |         0.94 |         0.72 |
+| gemini-2.5-flash-lite |     0.90 | 0.89 |         0.98 |         0.79 |
+-> gemini is the winner
+-> note that your data are exposed to Google Gemini if you use it for answers
 
 *** Embed models
-#+begin_src 
-=== all_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=all-minilm:latest, retrieve_only=False, query trans=False
-Mean: recall@k: 0.90, MRR: 0.89, Faithfulness: 0.98 Correctness: 0.79
-
-=== nom_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=nomic-embed-text:latest, retrieve_only=False, query trans=False
-Mean: recall@k: 0.63, MRR: 0.66, Faithfulness: 0.64 Correctness: 0.49
-
-=== qwe_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=False
-Mean: recall@k: 0.92, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
-#+end_src
+| embed model             | recall@k |  MRR | Faithfulness | Correnctness |
+|-------------------------+----------+------+--------------+--------------|
+| all-mininlm:lstest      |     0.90 | 0.89 |         0.98 |         0.79 |
+| nomic-embed-text:latest |     0.63 | 0.66 |         0.64 |         0.49 |
+| qwen3-embedding:0.6b    |     0.92 | 0.87 |         0.94 |         0.82 |
 -> tie all-minilm:latest vs qwen3-embedding:0.6b
 -> somehow nomic was bad
 
-*** Contxt-based + sub-split
-#+begin_src 
-=== all_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=all-minilm:latest, retrieve_only=False, query trans=False
-Mean: recall@k: 0.92, MRR: 0.84, Faithfulness: 0.94 Correctness: 0.83
+*** Splitter - contxt-based + sub-split
+| embed model             | recall@k |  MRR | Faithfulness | Correnctness |
+|-------------------------+----------+------+--------------+--------------|
+| all-mininlm:lstest      |     0.92 | 0.84 |         0.94 |         0.83 |
+| nomic-embed-text:latest |     0.73 | 0.61 |         0.76 |         0.61 |
+| qwen3-embedding:0.6b    |     0.95 | 0.82 |         0.98 |         0.85 |
 
-=== nom_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=nomic-embed-text:latest, retrieve_only=False, query trans=False
-Mean: recall@k: 0.73, MRR: 0.61, Faithfulness: 0.76 Correctness: 0.61
-
-=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=False
-Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
-#+end_src
+Comparing size- vs context-based for quen3
+| splitter      | recall@k |  MRR | Faithfulness | Correnctness |
+|---------------+----------+------+--------------+--------------|
+| size-based    |     0.92 | 0.87 |         0.94 |         0.82 |
+| context-based |     0.95 | 0.82 |         0.98 |         0.85 |
 -> overall winner is qwen3-embedding & context-based + sub-split
 -> MRR drops
-
-
-
-
-
-
-
-
-
 
 * Takeaways (to be updated)
 

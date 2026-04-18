@@ -152,28 +152,27 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 #+end_src
 
 * Results
-*** change chunk size
+*** change chunk size (number of characters)
 - overlap is 1/10 of chunk size
 - top_k=5, embed_model=all-minilm:latest
-- note: I saw ingest errors for size=1000
+- note: I saw ingest errors for (chunk) size=1000
 
 | size     |  100 |  200 |  400 |  600 |  800 | 1000 |
 | overlap  |   10 |   20 |   40 |   60 |   80 |  100 |
 |----------+------+------+------+------+------+------|
 | recall@k | 0.35 | 0.60 | 0,77 | 0.83 | 0.88 | 0.85 |
 | MRR      | 0.47 | 0.57 |   79 |   89 |   86 |   75 |
--> s800, o80 is the winner, close second is s600, o60
+- (chunk) size=800, overlap=80 is the winner, close second is size=600, overlap=60
 
 *** change overlap
-- size=600, top_k=5, embed_model=all-minilm:latest
+- size=600 characters, top_k=5, embed_model=all-minilm:latest
 - note: as I see ingest errors with size=800, overlap>=40, I tested with size=600
-
 | size     |  600 |  600 |  600 |  600 |  600 |  600 |
 | overlap  |    0 |   20 |   50 |   60 |   80 |  100 |
 |----------+------+------+------+------+------+------|
 | recall@k | 0.83 | 0.70 | 0.77 | 0.83 | 0.78 | 0.73 |
 | MRR      | 0.82 | 0.77 | 0.74 | 0.89 | 0.85 | 0.77 |
--> s600, o60 (overlap is 10% of size) is the winner
+- size=600, overlap=60 (overlap is 10% of size) is the winner
 
 *** top_k
 - size=600, overlap=60, embed_model=all-minilm:latest
@@ -182,7 +181,7 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 |----------+------+------+------+------+------+------|
 | recall@k | 0.83 | 0.83 | 0.87 | 0.90 | 0.90 | 0.90 |
 | MRR      | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 |
--> top_k>=6 maxed out.
+- top_k>=6 maxed out.
 
 *** LLM models for answer
 - note: using gemini for LLM for eval, hoping for better judgment.
@@ -190,8 +189,8 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 |-----------------------+----------+------+--------------+--------------|
 | llama3.1:8b           |     0.90 | 0.89 |         0.94 |         0.72 |
 | gemini-2.5-flash-lite |     0.90 | 0.89 |         0.98 |         0.79 |
--> gemini is the winner
--> note that your data are exposed to Google Gemini if you use it for answers
+- gemini is the winner
+- note that your data are exposed to Google Gemini if you use it for answers
 
 *** Embed models
 | embed model             | recall@k |  MRR | Faithfulness | Correnctness |
@@ -199,8 +198,8 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 | all-mininlm:lstest      |     0.90 | 0.89 |         0.98 |         0.79 |
 | nomic-embed-text:latest |     0.63 | 0.66 |         0.64 |         0.49 |
 | qwen3-embedding:0.6b    |     0.92 | 0.87 |         0.94 |         0.82 |
--> tie all-minilm:latest vs qwen3-embedding:0.6b
--> somehow nomic was bad
+- tie all-minilm:latest vs qwen3-embedding:0.6b
+- somehow nomic was worse than all-minilm. possibly because of the data set (relatively small .org files) as nomic is optimized for large data.
 
 *** Splitter - contxt-based + sub-split
 | embed model             | recall@k |  MRR | Faithfulness | Correnctness |
@@ -214,8 +213,8 @@ Comparing size- vs context-based for quen3
 |---------------+----------+------+--------------+--------------|
 | size-based    |     0.92 | 0.87 |         0.94 |         0.82 |
 | context-based |     0.95 | 0.82 |         0.98 |         0.85 |
--> overall winner is qwen3-embedding & context-based + sub-split
--> MRR drops
+- overall winner is qwen3-embedding & context-based + sub-split
+- MRR drops
 
 * Takeaways (to be updated)
 

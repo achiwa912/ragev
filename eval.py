@@ -3,9 +3,10 @@ import re
 import json
 import chromadb
 import ollama
+from sentence_transformers import CrossEncoder
 from google import genai
 from google.genai import types
-from config import DEFAULT_EVAL_LLM, DEFAULT_ANS_LLM, DEFAULT_EMBEDDING, RESULTS_PATH, genai_client
+from config import DEFAULT_EVAL_LLM, DEFAULT_ANS_LLM, DEFAULT_EMBEDDING, DEFAULT_RERANK, RESULTS_PATH, genai_client
 from questions import questions_keywords
 from retrieve import answer, retrieve, gemini_retry
 
@@ -133,21 +134,22 @@ def correctness(query: str, answer: str, ref_ans: str, model: str) ->float:
     return 0.0
 
 
-def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_eval: str=DEFAULT_EVAL_LLM, model_embed=DEFAULT_EMBEDDING, retrieve_only: bool=False, qtrans: bool=False):
+def eval(col_name: str='', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_eval: str=DEFAULT_EVAL_LLM, model_embed: str=DEFAULT_EMBEDDING, model_rerank: str=DEFAULT_RERANK, retrieve_only: bool=False, qtrans: bool=False, rerank: bool=False):
     eval_result = []
     recallk_sum = rr_sum = ff_sum = correct_sum = 0.0
     filename = f'{RESULTS_PATH}/eval_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jsonl'
-    print(f"=== {col_name}, top_k={top_k}, ans={model_ans}, eval={model_eval}, embed={model_embed}, retrieve_only={retrieve_only}, query trans={qtrans}")
+    model_reranker = CrossEncoder(model_rerank) if rerank else None
+    print(f"=== {col_name}, top_k={top_k}, ans={model_ans}, eval={model_eval}, embed={model_embed}, rerank={model_rerank}, retrieve_only={retrieve_only}, query trans={qtrans}, rerank={rerank}")
     with open(filename, 'w', encoding='utf-8') as f:
         for i, question in enumerate(questions_keywords):
             eval_single = {}
             eval_single['qid'] = question['id']
             eval_single['faithfulness'] = eval_single['correctness'] = 0.0
             if retrieve_only:
-                result = retrieve(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, qtrans=qtrans)
+                result = retrieve(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, model_reranker=model_reranker, qtrans=qtrans, rerank=rerank)
                 result['answer'] = 'N/A'
             else:
-                result = answer(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, qtrans=qtrans)
+                result = answer(question['query'], col_name, top_k=top_k, model_ans=model_ans, model_embed=model_embed, model_reranker=model_reranker, qtrans=qtrans, rerank=rerank)
                 eval_single['faithfulness'] = faithfulness(
                     result['chunks'], result['answer'], model=model_eval)
                 ff_sum += eval_single['faithfulness']
@@ -179,6 +181,6 @@ def eval(col_name: str='all_s600_o60', top_k: int=6, model_ans: str=DEFAULT_ANS_
 
 # all-minilm:latest, nomic-embed-text:latest, qwen3-embedding:0.6b
 # llama3.1:8b, gemini-2.5-flash-lite
-# eval(col_name='qwe_s600_o60_sizeonly', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', retrieve_only=False, qtrans=False)
+# eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', model_rerank='cross-encoder/ms-marco-MiniLM-L6-v2', retrieve_only=False, qtrans=False, rerank=False)
 breakpoint()
 

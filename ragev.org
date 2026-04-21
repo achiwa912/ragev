@@ -5,6 +5,7 @@ I'm working on a personal RAG evaluation project: ragev with you:
 - embed models - all-minilm, nomic-embed-text, qwen3-embedding:0.6b
 - LLM models - llama3.2:8b, Gemini API
 - vector DB - ChromaDB, may or may not try Qdrant
+- re-ranker/cross-encoder - cross-encoder/ms-marco-MiniLM-L-6-v2
 - dataset
   - https://github.com/achiwa912/vbs/blob/main/README.org -> data/org/vbs.org
   - https://blog.achiwa.co.uk/posts/homelab_minipc/ -> data/org/homelab.org
@@ -15,6 +16,7 @@ I'm working on a personal RAG evaluation project: ragev with you:
 - python scripts - ingest.py, config.py, retrieve.py, eval.py, etc.
 - parameters - chunk size, overlap size, top-k
 - scorers - recall@K (approx w/ keywords), MRR, faithfulness, answer correctness
+- github repo for ragev - https://github.com/achiwa912/ragev
 === Instruction to Claude:
 You are a senior engineer and guide a junior engineer (me) to learn RAG system.  Act as a knowlegeable helper.  The top priority is that I learn RAG system and internalize it.  Don't give me full python scripts, instructions or evaluations of results.  When I ask questions on this chat, answer concisely with supported links that I should read.  I prefer official/canonical information.  As it's my learning, I take the initiative.  Don't forget to change your personality from default to concise and dense.  Don't give me information ahead without I'm asking first.  If you are ready, just say today's highlight/hints in less than 5 lines.
 === Done:
@@ -33,10 +35,14 @@ You are a senior engineer and guide a junior engineer (me) to learn RAG system. 
 - Implemented CoT prompts for faithfulness and correctness, tweaked them
 - Lots of 503s from Gemini APIs -> added retries
 - Implemented context-based (org files only) splitter -> Same or bit worse than size-based
-- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompt looks reasonable.  Possibley losing context.
+- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompts look reasonable.  Possibley losing context by removing 'noises'
 - Implemented subsplit long sections to context-based (s600, o60) ->  Winner.
+- Added README to the github repo
+- Implemented re-ranking with sentence_transformers.  Minimum cross-encoder/ms-marco-MiniLM-L-6-v2 was effective.  The best result ever:
++++ qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=True
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 1.00 Correctness: 0.85
 === Working on:
-- What's next?
+- What else should I do?
 #+end_src
 
 #+begin_src 
@@ -44,16 +50,18 @@ I'm working on a personal RAG evaluation project: ragev:
 - embed models - all-minilm, nomic-embed-text, qwen3-embedding:0.6b
 - LLM models - llama3.2:8b, Gemini API
 - vector DB - ChromaDB, may or may not try Qdrant
+- re-ranker/cross-encoder - cross-encoder/ms-marco-MiniLM-L-6-v2
 - dataset
   - https://github.com/achiwa912/vbs/blob/main/README.org -> data/org/vbs.org
   - https://blog.achiwa.co.uk/posts/homelab_minipc/ -> data/org/homelab.org
   - https://blog.achiwa.co.uk/posts/advprompt/ -> data/org/advanced.org
 - dev environment
   - M1 Pro Mac (10-core, 32GB RAM) — primary dev/test, fan-sensitive
-  - N150 homelab, Ubuntu on Proxmox (11GB RAM for Ubuntu) — git origin, rsync target only (too slow without GPU)
+  - N150 homelab, Ubuntu on Proxmox (11GB RAM) — git origin, rsync target only (too slow without GPU)
 - python scripts - ingest.py, config.py, retrieve.py, eval.py, etc.
 - parameters - chunk size, overlap size, top-k
 - scorers - recall@K (approx w/ keywords), MRR, faithfulness, answer correctness
+- github repo for ragev - https://github.com/achiwa912/ragev
 === Done:
 - Decided to start with a simple size-based chunking; will revisit header-based later
 - collection naming: all/nom_s<size>_o<overlap>; eg, all_s200_o20
@@ -70,10 +78,14 @@ I'm working on a personal RAG evaluation project: ragev:
 - Implemented CoT prompts for faithfulness and correctness, tweaked them
 - Lots of 503s from Gemini APIs -> added retries
 - Implemented context-based (org files only) splitter -> Same or bit worse than size-based
-- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompt looks reasonable.  Possibley losing context.
+- Implemented query transform (remove noise + possibly add keywords) -> Bad, though new prompts look reasonable.  Possibley losing context by removing 'noises'
 - Implemented subsplit long sections to context-based (s600, o60) ->  Winner.
+- Added README to the github repo
+- Implemented re-ranking with sentence_transformers.  Minimum cross-encoder/ms-marco-MiniLM-L-6-v2 was effective.  The best result ever:
++++ qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=True
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 1.00 Correctness: 0.85
 === Working on:
-- What's next?  Or write a README and/or a blog post.
+- What else should I do?
 #+end_src
 
 - python
@@ -652,4 +664,23 @@ Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
 
 === qwe_s600_o60_context, top_k=3, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, retrieve_only=False, query trans=True
 Mean: recall@k: 0.67, MRR: 0.64, Faithfulness: 0.66 Correctness: 0.53
+#+end_src
+
+*** Re-ranking
+#+begin_src 
+pip install -U sentence-transformers
+#+end_src
+
+#+begin_src 
+=== qwe_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=False
+Mean: recall@k: 0.92, MRR: 0.87, Faithfulness: 0.94 Correctness: 0.82
+
+=== qwe_s600_o60_sizeonly, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=True
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 0.97 Correctness: 0.80
+
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=False
+Mean: recall@k: 0.95, MRR: 0.82, Faithfulness: 0.98 Correctness: 0.85
+
+=== qwe_s600_o60_context, top_k=6, ans=gemini-2.5-flash-lite, eval=gemini-2.5-flash-lite, embed=qwen3-embedding:0.6b, rerank=cross-encoder/ms-marco-MiniLM-L6-v2, retrieve_only=False, query trans=False, rerank=True
+Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 1.00 Correctness: 0.85
 #+end_src

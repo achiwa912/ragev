@@ -127,13 +127,16 @@ def ingest(size: int, overlap: int, embed_str: str=DEFAULT_EMBEDDING, context_ba
         }
     )
 
+    total = 0
     for path_str in SOURCE_DOCUMENTS:
         if context_based:
             chunks = split_file_by_context(path_str, size, overlap)
         else:
             chunks = split_file_by_size(path_str, size, overlap)
         ingest_file(collection, path_str, chunks, embed_str)
-
+        total += len(chunks)
+        print(f"{path_str}: {len(chunks)} chunks")
+    print(f"total: {total} chunks embedded")
 
 def main():
     breakpoint()

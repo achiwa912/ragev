@@ -137,7 +137,7 @@ graph TD
     Gemini -->|Answer| User
 #+end_src
 
-** Machines
+** Hardware
 *** AceMagic V1
 - Intel N150, 16GB RAM, 1TB SSD
 - Ubuntu 24.04.2 LTS (12GB RAM assigned) on Proxmox 8.4.0
@@ -427,10 +427,23 @@ xychart-beta
 |----------+----------+------+--------------+-------------|
 | disabled |     0.95 | 0.82 |         0.98 |        0.85 |
 | enabled  |     0.97 | 1.00 |         1.00 |        0.85 |
-- Re-ranking worked as expected for recall@k and MRR, especially the latter was improved significantly from 0.82 to perfect 1.00 as re-ranking pushed important chunks to top.
-- After all, transformer attention of cross-encoder suits more than simple cosine similarities of vector DB in finding relevant chunks to user queries.
+- Re-ranking worked as expected for recall@k and MRR, especially the latter improved significantly from 0.82 to perfect 1.00 as re-ranking pushed important chunks to top.
+- After all, transformer attention of cross-encoder suits more than simple cosine similarities of vector DB in ordering relevant chunks to user queries.
 
-*** Best-config among tested
+*** Summary
+#+begin_src mermaid :file images/summary.png
+xychart-beta
+  title "RAG Eval: summary"
+  x-axis ["Base", "+Gemini", "+Qwen3", "+Context", "+rerank"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  line [0.90, 0.90, 0.92, 0.95, 0.97]
+  line [0.89, 0.89, 0.87, 0.82, 1.00]
+  line [0.94, 0.98, 0.94, 0.98, 1.00]
+  line [0.72, 0.79, 0.82, 0.85, 0.85]
+#+end_src#+end_src
+
+
+**** Best-config among tested
 - Context-based splitter with sub-splitting large sections (size=600, overlap=60)
 - top_k = 6
 - Embed-model: qwen3-embedding:0.6b

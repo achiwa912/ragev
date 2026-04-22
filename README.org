@@ -165,7 +165,7 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 #+begin_src mermaid :file images/size.png
 xychart-beta
     title "RAG Eval: Recall@k vs MRR"
-    x-axis "Size/Overlap" [100/10, 200/20, 400/40, 600/60, 800/80, 1000/100]
+    x-axis "Size" [100, 200, 400, 600, 800, 1000]
     y-axis "Score" 0 --> 1
     line [0.35, 0.60, 0.77, 0.83, 0.88, 0.85]
     line [0.47, 0.57, 0.79, 0.89, 0.86, 0.75]
@@ -217,11 +217,11 @@ xychart-beta
 - Note: using gemini for LLM for eval, hoping for better judgment.
 #+begin_src mermaid :file images/llmmodels.png
 xychart-beta
-  title "RAG Eval: Recall@k vs MRR (size=600, overlap=600)"
+  title "RAG Eval: llama3.1:8b vs gemini-2.5-flash-lite"
   x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
   y-axis "Score (0.0 - 1.0)" 0 --> 1
-  bar [0.90, 0.89, 0.94, 0.72]
-  bar [0.90, 0.89, 0.98, 0.79]
+  line [0.90, 0.89, 0.94, 0.72]
+  line [0.90, 0.89, 0.98, 0.79]
 #+end_src#+end_src
 | answer model          | recall@k |  MRR | Faithfulness | Correctness |
 |-----------------------+----------+------+--------------+-------------|

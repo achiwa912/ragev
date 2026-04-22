@@ -433,7 +433,7 @@ xychart-beta
 *** Summary
 #+begin_src mermaid :file images/summary.png
 xychart-beta
-  title "RAG Eval: summary"
+  title "RAG Eval: recall@k(blue),MRR(green),Faith(red),Corct(yellow)"
   x-axis ["Base", "+Gemini", "+Qwen3", "+Context", "+rerank"]
   y-axis "Score (0.0 - 1.0)" 0 --> 1
   line [0.90, 0.90, 0.92, 0.95, 0.97]
@@ -441,7 +441,7 @@ xychart-beta
   line [0.94, 0.98, 0.94, 0.98, 1.00]
   line [0.72, 0.79, 0.82, 0.85, 0.85]
 #+end_src#+end_src
-
+Base: size=600, overlap=60, top_k=6
 
 **** Best-config among tested
 - Context-based splitter with sub-splitting large sections (size=600, overlap=60)

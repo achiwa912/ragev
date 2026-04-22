@@ -1,184 +1,46 @@
 #+TITLE: ragev - RAG Evaluation Report
 
-* Overview
+* Preface
+** Overview
 Conducted a RAG system evaluation with these parameters changed:
 - document splitters; size-based, context-based
 - embedding models; all-minilm, nomic, qwen3 0.6b
 - LLM models; llama3.1:8b, gemini-2.5-flash-lite
 - Re-ranking enabled/disabled
 
-* Key takeaways
-** Embedding
-- size=600 & overlap=60 is the sweet spot
-- Context-based splitter with sub-splitting large sections is better than context-based only or size/overlap only
-- Embedding model matters.  qwen3-embedding is the winner.
+** Motivation
+RAG systems are sensitive to multiple interacting components (chunking, embeddings, retrieval, re-ranking).  This project evaluates how these components affect retrieval quality and answer correctness in a controlled setup.
 
-** Questions
-- LLM was useful to generate questions with keywords and reference answers
+The goal is to identify practical configurations that improve:
+- retrieval accuracy (Recall@K, MRR)
+- answer quality (faithfulness, correctness)
+
+while highlighting tradeoffs and failure modes.
+
+** Key takeaways
+*** Embedding
+- size=600 & overlap=60 was the sweet spot
+- Context-based splitter with sub-splitting large sections was better than context-based only or size/overlap only
+- Embedding model matters.  qwen3-embedding was the winner.
+
+*** Queries
+- LLM is useful to generate queries with keywords and reference answers
 - You need to manually check and update as they may have hallucinations
 
-** Evaluation
+*** Evaluation
 - Prompt matters for better LLM evaluation with faithfulness and correctness.  Introducing CoT (Chain of Thoughts) reduced hallucinations
 - Still, you need to look at logs to see if LLM evaluation was correct
 
-** LLM usage
+*** LLM usage
 - To stabilize results, setting temperature (& seed) is important
-- I saw false positives and negatives.  LLMs are not reliable.  Reducing hallucinations is a challenge.  (eg, LLM could use its knowledge, not context to answer questions)
+- I saw false positives and negatives.  LLMs are not reliable.  Reducing hallucinations is a challenge.
+- Transforming queries to sequences of keywords worsen the results for the dataset.  Hypothesis:
+  - Original queries were already aligned with source documents
+  - Removing 'noises' also removed context
 
-** Vector DB
-- Transforming questions worsen the results.
+*** Re-ranking
+- Re-ranking improved overall metrics.  But the improvement to MRR was significant (0.82 \to 1.00) because it directly pushed the most relevant chunk to the top.
 
-** Re-ranking
-- Re-ranking is effective.  Improved recall@k, MRR and Faithfulness.
-- I tested only a small encoder: cross-encoder/ms-marco-MiniLM-L6-v2 but got tangible improvements.
-
-** Best configuration
-Best performing configuration:
-- Splitter: context-based + sub-split
-- Embedding: qwen3-embedding:0.6b
-- top_k: 6
-- Re-ranking: enabled
-- Answer model: gemini-2.5-flash-lite
-
-Performance:
-- Recall@k: 0.97
-- MRR: 1.00
-- Faithfulness: 1.00
-- Correctness: 0.85
-
-* Test environment
-** Machines
-*** AceMagic V1
-- Intel N150, 16GB RAM, 1TB SSD
-- Ubuntu 24.04.2 LTS (12GB RAM assigned) on Proxmox 8.4.0
-  - GPU not available
-
-*** Laptop (Mac/Chromebook)
-- For editing
-
-** Vector DB and embedding/LLM models
-*** Vector DB for embedding
-- ChromaDB 1.5.7
-- Collection name format: <embed_model>__s<size>_o<overlap>[_context]
-  - embed_model: all: all-minilm:latest, nom: nomic-embed-text:latest, qwe: qwen3-embedding:0.6b
-  - size: chunk size in number of characters
-  - overlap: overlap in number of characters
-  - _context: optional; use context-based splitter (note: support .org files only)
-
-*** LLM models
-**** Ollama
-#+begin_src 
-(ve) ~/py/ragev % ollama list
-NAME                       ID              SIZE      MODIFIED     
-qwen3-embedding:0.6b       ac6da0dfba84    639 MB    25 hours ago    
-llama3.1:8b                46e0c10c039e    4.9 GB    6 days ago      
-nomic-embed-text:latest    0a109f422b47    274 MB    13 days ago     
-llama3.2:3b                a80c4f17acd5    2.0 GB    3 weeks ago     
-all-minilm:latest          1b226e2802db    45 MB     3 weeks ago     
-#+end_src
-
-**** Gemini API
-- gemini-2.5-flash-lite
-
-*** Cross-encoder
-- cross-encoder/ms-marco-MiniLM-L6-v2
-
-** Files and directories
-*** Files
-- cli_chroma.py - show collection list, etc. for ChromaDB
-- config.py - config parameters
-- eval.py - eval() runs a test round (eg, 20 questions)
-- ingest.py - ingest() embed data files (3 .org files) to ChromaDB
-- keywords_checker.py - check if all keywords are in the data files (debug)
-- questions.py, questions.orig - 20 questions
-- retrieve.py 
-  - retrieve() retrieves similar chunks to user question
-  - answer() LLM generates answer based on retrieved chunks and the question
-
-*** Directories
-- chroma/ - chroma database files
-- results/ - test logs in jsonl
-  - eval_YYYYMMDD_HHMMSS.jsonl eg, eval_20260401_195903.jsonl
-- data/org/ - data files
-
-** Dataset
-- 3 documents (~5 KB total)
-- Domain: personal github project README and technical blog content (flashcard app, prompting, homelab)
-- Total chunks after splitting: 120
-| document     | chunks |
-|--------------+--------|
-| vbs.org      |     29 |
-| homelab.org  |     34 |
-| advanced.org |     57 |
-|--------------+--------|
-| total        |    120 |
-
-* Methodologies
-Each experiment varies a single parameter while keeping others fixed:
-- One variable changed per experiment
-- 20 fixed questions used across all runs
-- Results averaged over one run (future work: multiple seeds)
-- Base config: size=600, overlap=60, top_k=6, qwen3 embedding
-
-** Parameters
-- Chunk splitters
-  - Size-based
-    - Size: specify chunk size in number in characters
-    - Overlap: how many characters are overlapped between 2 continuous chunks
-  - Context-based: split by .org headers (ie, startswith('*'))
-  - Context-based + sub-split large sections
-- top_k: how many chunks similar to a query are retrieved
-- embedding model: all-minilm, nomic-embed-text or qwen3-embedding:0.6b
-- answer model:  gemini-2.5-flash-lite or llama3.1:8b
-- eval model: gemini-2.5-flash-lite or llama3.1:8b
-- question transformation: ask LLM to transform the question to be more vector DB friendly (ie, remove noise and add keywords that LLM knows)
-
-** Queries/questions
-- Asked Claude to generate 20 questions.  Prompt used:
-#+begin_src 
-For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
-The doc:
-#+end_src
-- Checked and updated manually
-  - "expected_answer" -> "reference_answer"
-  - changed some keywords (eg, not appear in data files)
-  - asked Claude to re-generate 3 incorrect questions
-
-Samples:
-#+begin_src python
-questions_keywords = [
-    {
-        "id": "q01",
-        "query": "What does PREV stand for and what is its purpose?",
-        "keywords": ["Plan", "Verify", "self-criticism"],
-        "reference_answer": "PREV stands for Plan, Reason, Execute and Verify. Its purpose is to address the LLM weakness of jumping into conclusions too early by forcing the LLM to slow down and verify its output."
-    },
-    {
-        "id": "q02",
-        "query": "What does ReAct stand for and what loop does it use?",
-        "keywords": ["Reason-Action", "Thought", "Observation"],
-        "reference_answer": "ReAct stands for Reason-Action. It is a micro-pattern that breaks a step into a Thought, Action, Observation loop."
-    },
-# <snip>
-#+end_src
-
-
-** Metrics
-I wrote four scorers, two to see retrieval quality and two for end-to-end quality.
-*** Retrieval
-- Recall@K - percentage of keywords appear in top_k chunks
-  - Recall@K is approximated using keyword matching rather than labeled relevant chunks.
-  - This introduces noise but avoids manual annotation.
-- MRR (Mean Reciprocal Rank) - how early in (top_k) chunks any keyword appear
-
-*** End-to-end
-- Faithfulness - ask LLM to rate if answer is generated solely from top_k chunks
-- Answer correctness - ask LLM if the answer answers question
-
-** Limitations
-- Single run per configuration (no variance estimation)
-- Small dataset (20 queries)
-- Results may not generalize
 
 * Quick start
 - Install Python
@@ -238,11 +100,146 @@ python eval.py
 eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', model_rerank='cross-encoder/ms-marco-MiniLM-L6-v2', retrieve_only=False, qtrans=False, rerank=True)
 #+end_src
 
-* Results
+* Test environment
+** Machines
+*** AceMagic V1
+- Intel N150, 16GB RAM, 1TB SSD
+- Ubuntu 24.04.2 LTS (12GB RAM assigned) on Proxmox 8.4.0
+  - GPU not available
+
+*** Laptop (Mac/Chromebook)
+- For editing
+
+** Vector DB and embedding/LLM models
+*** Vector DB for embedding
+- ChromaDB 1.5.7
+- Collection name format: <embed_model>__s<size>_o<overlap>[_context]
+  - embed_model: all: all-minilm:latest, nom: nomic-embed-text:latest, qwe: qwen3-embedding:0.6b
+  - size: chunk size in number of characters
+  - overlap: overlap in number of characters
+  - _context: optional; use context-based splitter (note: support .org files only)
+
+*** LLM models
+**** Ollama
+#+begin_src 
+(ve) ~/py/ragev % ollama list
+NAME                       ID              SIZE      MODIFIED     
+qwen3-embedding:0.6b       ac6da0dfba84    639 MB    25 hours ago    
+llama3.1:8b                46e0c10c039e    4.9 GB    6 days ago      
+nomic-embed-text:latest    0a109f422b47    274 MB    13 days ago     
+llama3.2:3b                a80c4f17acd5    2.0 GB    3 weeks ago     
+all-minilm:latest          1b226e2802db    45 MB     3 weeks ago     
+#+end_src
+
+**** Gemini API
+- gemini-2.5-flash-lite
+
+*** Cross-encoder
+- cross-encoder/ms-marco-MiniLM-L6-v2
+
+** Files and directories
+*** Files
+- cli_chroma.py - show collection list, etc. for ChromaDB
+- config.py - config parameters
+- eval.py - eval() runs a test round (eg, 20 queries)
+- ingest.py - ingest() embed data files (3 .org files) to ChromaDB
+- keywords_checker.py - check if all keywords are in the data files (debug)
+- questions.py, questions.orig - 20 queries
+- retrieve.py 
+  - retrieve() retrieves similar chunks to user query
+  - answer() LLM generates answer based on retrieved chunks and the query
+
+*** Directories
+- chroma/ - chroma database files
+- results/ - test logs in jsonl
+  - eval_YYYYMMDD_HHMMSS.jsonl eg, eval_20260401_195903.jsonl
+- data/org/ - data files
+
+** Dataset
+- 3 documents (~5 KB total)
+- Domain: personal github project README and technical blog content (flashcard app, prompting, homelab)
+- Total chunks after splitting: 120
+| document     | chunks |
+|--------------+--------|
+| vbs.org      |     29 |
+| homelab.org  |     34 |
+| advanced.org |     57 |
+|--------------+--------|
+| total        |    120 |
+
+* Methodologies
+Each experiment varies a single parameter while keeping others fixed:
+- One variable changed per experiment
+- 20 fixed queries used across all runs
+- Results averaged over one run (future work: multiple seeds)
+- Base config: size=600, overlap=60, top_k=6, qwen3 embedding
+
+** Parameters
+- Chunk splitters
+  - Size-based
+    - Size: specify chunk size in number in characters
+    - Overlap: how many characters are overlapped between 2 continuous chunks
+  - Context-based: split by .org headers (ie, startswith('*'))
+  - Context-based + sub-split large sections
+- top_k: how many chunks similar to a query are retrieved
+- embedding model: all-minilm, nomic-embed-text or qwen3-embedding:0.6b
+- answer model:  gemini-2.5-flash-lite or llama3.1:8b
+- eval model: gemini-2.5-flash-lite or llama3.1:8b
+- query transformation: ask LLM to transform the query to be more vector DB friendly (ie, remove noise and add keywords that LLM knows)
+
+** Queries
+- Asked Claude to generate 20 queries.  Prompt used:
+#+begin_src 
+For my RAG eval, write 20 questions.  Include 3 questions that require combining information from multiple sentences.  For each questions, pick up three key words and generate an expected answer.  Generate your answer based only on the document below, not from your general knowledge.  Give me your answer in a python dicstionaries in a list so that I can copy and paste like this: [{"id": "q01", "query": "What is PREV?", "keywords": ["aaa", "bbb ccc", "ddd"], "expected_answer": "Plan, .."}, ...]
+The doc:
+#+end_src
+- Checked and updated manually
+  - "expected_answer" -> "reference_answer"
+  - changed some keywords (eg, not appear in data files)
+  - asked Claude to re-generate 3 incorrect queries
+
+Samples:
+#+begin_src python
+questions_keywords = [
+    {
+        "id": "q01",
+        "query": "What does PREV stand for and what is its purpose?",
+        "keywords": ["Plan", "Verify", "self-criticism"],
+        "reference_answer": "PREV stands for Plan, Reason, Execute and Verify. Its purpose is to address the LLM weakness of jumping into conclusions too early by forcing the LLM to slow down and verify its output."
+    },
+    {
+        "id": "q02",
+        "query": "What does ReAct stand for and what loop does it use?",
+        "keywords": ["Reason-Action", "Thought", "Observation"],
+        "reference_answer": "ReAct stands for Reason-Action. It is a micro-pattern that breaks a step into a Thought, Action, Observation loop."
+    },
+# <snip>
+#+end_src
+
+
+** Metrics
+I wrote four scorers, two to see retrieval quality and two for end-to-end quality.
+*** Retrieval
+- Recall@K - percentage of keywords appear in top_k chunks
+  - Recall@K is approximated using keyword matching rather than labeled relevant chunks.
+  - This introduces noise but avoids manual annotation.
+- MRR (Mean Reciprocal Rank) - how early in (top_k) chunks any keyword appear
+
+*** End-to-end
+- Faithfulness - ask LLM to rate if answer is generated solely from top_k chunks
+- Answer correctness - ask LLM if the answer answers query
+
+** Limitations
+- Single run per configuration (no variance estimation)
+- Small dataset (20 queries)
+- Results may not generalize
+
+
+* Results and findings
 *** Chunk size (number of characters)
 - Overlap is 1/10 of chunk size
 - Top_k=5, embed_model=all-minilm:latest
-- Note: I saw ingest errors for (chunk) size=1000, likely due to limited context size fo the minilm model.
+- Note: I saw ingest errors for (chunk) size=1000, likely due to limited context size for the minilm model.
 
 #+begin_src mermaid :file images/size.png
 xychart-beta
@@ -310,7 +307,7 @@ xychart-beta
 | llama3.1:8b           |     0.90 | 0.89 |         0.94 |        0.72 |
 | gemini-2.5-flash-lite |     0.90 | 0.89 |         0.98 |        0.79 |
 - Gemini is the winner
-- Note that your data are exposed to Google Gemini if you use it for answers
+- Note that your data is exposed to Google Gemini if you use it for answers
 
 *** Embed models
 #+begin_src mermaid :file images/embedmodels.png
@@ -324,16 +321,19 @@ xychart-beta
 #+end_src#+end_src
 | embed model             | recall@k |  MRR | Faithfulness | Correctness |
 |-------------------------+----------+------+--------------+-------------|
-| all-mininlm:latest      |     0.90 | 0.89 |         0.98 |        0.79 |
+| all-minilm:latest       |     0.90 | 0.89 |         0.98 |        0.79 |
 | nomic-embed-text:latest |     0.63 | 0.66 |         0.64 |        0.49 |
 | qwen3-embedding:0.6b    |     0.92 | 0.87 |         0.94 |        0.82 |
 - Tie all-minilm:latest vs qwen3-embedding:0.6b
-- Somehow nomic was worse than all-minilm. possibly because of the data set (relatively small .org files) as nomic is optimized for large data.
+- nomic underperformed significantly.  Hypothesis:
+  - The dataset is small and domain specific
+  - nomic is optimized for larger, more diverse corpora
+  - all-minilm and qwen3 might better capture short-context semantics
 
-*** Splitter - contxt-based + sub-split
+*** Splitter - context-based + sub-split
 | embed model             | recall@k |  MRR | Faithfulness | Correctness |
 |-------------------------+----------+------+--------------+-------------|
-| all-mininlm:latest      |     0.92 | 0.84 |         0.94 |        0.83 |
+| all-minilm:latest       |     0.92 | 0.84 |         0.94 |        0.83 |
 | nomic-embed-text:latest |     0.73 | 0.61 |         0.76 |        0.61 |
 | qwen3-embedding:0.6b    |     0.95 | 0.82 |         0.98 |        0.85 |
 
@@ -351,7 +351,7 @@ xychart-beta
 | size-based    |     0.92 | 0.87 |         0.94 |        0.82 |
 | context-based |     0.95 | 0.82 |         0.98 |        0.85 |
 - Overall winner is qwen3-embedding & context-based + sub-split
-- MRR drops.  Keywords are not in an earlier chunk in a section.  As recall@k is high, it shouldn't matter much.
+- MRR dropped.  This means that keywords were not in an earlier chunk in a section.  But, as recall@k is high, it shouldn't matter much.
 
 *** Query transformation
 #+begin_src mermaid :file images/qtrans.png
@@ -367,7 +367,7 @@ xychart-beta
 | disabled    |     0.95 | 0.82 |         0.98 |        0.85 |
 | enabled     |     0.67 | 0.64 |         0.66 |        0.53 |
 - Query transformation worsened the numbers.
-- Possibly losing context/exact phrasing by removing 'noises', and/or questions generated by Claude are more in line with original texts
+- Possibly losing context/exact phrasing by removing 'noises', and/or queries generated by Claude are more in line with original texts
 
 *** Re-ranking
 - Used cross-encoder to reorder results from ChromaDB
@@ -385,5 +385,5 @@ xychart-beta
 |----------+----------+------+--------------+-------------|
 | disabled |     0.95 | 0.82 |         0.98 |        0.85 |
 | enabled  |     0.97 | 1.00 |         1.00 |        0.85 |
-- Re-ranking worked as expected
+- Re-ranking worked as expected for recall@k and MRR, especially the latter was improved significantly from 0.82 to perfect 1.00 as re-ranking pushed important chunks to top.  After all, transformer attention (cross-encoder) is better than simple cosine similarities (vector DB) in finding relevant chunks to user queries.
 

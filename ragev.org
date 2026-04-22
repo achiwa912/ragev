@@ -86,6 +86,10 @@ I'm working on a personal RAG evaluation project: ragev:
 Mean: recall@k: 0.97, MRR: 1.00, Faithfulness: 1.00 Correctness: 0.85
 === Working on:
 - What else should I do?
+- The purpose of this project is that I learn a RAG system and can mention in my resume.  It's an eval project and I don't plan to productize it.  Options:
+  - Write blog posts
+  - Add API and frontend
+  - What else?
 #+end_src
 
 - python

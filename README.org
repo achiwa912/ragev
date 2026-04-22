@@ -10,6 +10,7 @@ Key takeaways include:
 - As a splitter, context-based with sub-splitting large sections was optimal
 - Embedding model matters.  qwen3 beat all-minilm and nomic as expected
 - Question transformation didn't improve the numbers
+- Re-ranking was effective.
 
 * Test environment
 ** Machines
@@ -40,6 +41,9 @@ all-minilm:latest          1b226e2802db    45 MB     3 weeks ago
 
 *** Gemini model (via API)
 - gemini-2.5-flash-lite
+
+*** Cross-encoder
+- cross-encoder/ms-marco-MiniLM-L6-v2
 
 ** Files and directories
 *** Files
@@ -158,6 +162,15 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 - Top_k=5, embed_model=all-minilm:latest
 - Note: I saw ingest errors for (chunk) size=1000
 
+#+begin_src mermaid :file images/rag_metrics.png
+xychart-beta
+    title "RAG Evaluation: Recall@k vs MRR"
+    x-axis "Overlap" [10, 20, 40, 60, 80, 100]
+    y-axis "Score" 0 --> 1
+    line [0.35, 0.60, 0.77, 0.83, 0.88, 0.85]
+    line [0.47, 0.57, 0.79, 0.89, 0.86, 0.75]
+#+end_src
+
 | size     |  100 |  200 |  400 |  600 |  800 | 1000 |
 | overlap  |   10 |   20 |   40 |   60 |   80 |  100 |
 |----------+------+------+------+------+------+------|
@@ -259,3 +272,4 @@ Comparing size- vs context-based for quen3
 
 ** Re-ranking
 - Re-ranking is effective.  Improved recall@k, MRR and Faithfulness.
+- I testes only a small encoder: cross-encoder/ms-marco-MiniLM-L6-v2 but got tangible improvements.

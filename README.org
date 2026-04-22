@@ -231,6 +231,15 @@ xychart-beta
 - Note that your data are exposed to Google Gemini if you use it for answers
 
 *** Embed models
+#+begin_src mermaid :file images/embedmodels.png
+xychart-beta
+  title "RAG Eval: all-minilm vs nomic vs qwen3"
+  x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  line [0.90, 0.89, 0.98, 0.79]
+  line [0.63, 0.66,  0.64, 0.49]
+  line [0.92, 0.87, 0.94, 0.82]
+#+end_src#+end_src
 | embed model             | recall@k |  MRR | Faithfulness | Correctness |
 |-------------------------+----------+------+--------------+-------------|
 | all-mininlm:lstest      |     0.90 | 0.89 |         0.98 |        0.79 |
@@ -247,6 +256,14 @@ xychart-beta
 | qwen3-embedding:0.6b    |     0.95 | 0.82 |         0.98 |        0.85 |
 
 Comparing size- vs context-based for quen3
+#+begin_src mermaid :file images/splitters.png
+xychart-beta
+  title "RAG Eval: size-based vs context-based"
+  x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  line [0.92, 0.87, 0.94, 0.82]
+  line [0.95, 0.82, 0.98, 0.85]
+#+end_src#+end_src
 | splitter      | recall@k |  MRR | Faithfulness | Correctness |
 |---------------+----------+------+--------------+-------------|
 | size-based    |     0.92 | 0.87 |         0.94 |        0.82 |
@@ -255,6 +272,14 @@ Comparing size- vs context-based for quen3
 - MRR drops.  Keywords are not in an earlier chunk in a section.  As recall@k is high, it shouldn't matter much.
 
 *** Query transformation
+#+begin_src mermaid :file images/qtrans.png
+xychart-beta
+  title "RAG Eval: query transformatioin"
+  x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  line [0.95, 0.82, 0.98, 0.85]
+  line [0.67, 0.64, 0.66, 0.53]
+#+end_src#+end_src
 | Query Trans | recall@k |  MRR | Faithfulness | Correctness |
 |-------------+----------+------+--------------+-------------|
 | disabled    |     0.95 | 0.82 |         0.98 |        0.85 |
@@ -266,6 +291,14 @@ Comparing size- vs context-based for quen3
 - Used cross-encoder to reorder results from ChromaDB
 - Re-ranker: cross-encoder/ms-marco-MiniLM-L6-v2
 - context-based+subsplit (size=600, overlap=60), qwen3-embedding:0.6b, gemini-2.5-flash-lite
+#+begin_src mermaid :file images/rerank.png
+xychart-beta
+  title "RAG Eval: re-ranking"
+  x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  line [0.95, 0.82, 0.98, 0.85]
+  line [0.97, 1.00, 1.00, 0.85]
+#+end_src#+end_src
 | Re-rank  | recall@k |  MRR | Faithfulness | Correctness |
 |----------+----------+------+--------------+-------------|
 | disabled |     0.95 | 0.82 |         0.98 |        0.85 |

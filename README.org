@@ -433,13 +433,13 @@ xychart-beta
 *** Summary
 #+begin_src mermaid :file images/summary.png
 xychart-beta
-  title "RAG Eval: recal(blue),MRR(green),Faith(red),Corect(yellow)"
+  title "RAG Eval: recal(blue),MRR(green),Faith(red),Corct(yellow)"
   x-axis ["s600,o60", "top_k=6", "+Gemini", "+Qwen3", "+Context", "+Rerank"]
-  y-axis "Score (0.0 - 1.0)" 0.6 --> 1
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
   line [0.60, 0.83, 0.90, 0.90, 0.92, 0.95, 0.97]
   line [0.57, 0.89 , 0.89, 0.89, 0.87, 0.82, 1.00]
-  line [, , 0.94, 0.98, 0.94, 0.98, 1.00]
-  line [, , 0.72, 0.79, 0.82, 0.85, 0.85]
+  line [0.60, 0.91, 0.94, 0.98, 0.94, 0.98, 1.00]
+  line [0.43, 0.69, 0.72, 0.79, 0.82, 0.85, 0.85]
 #+end_src#+end_src
 - s200,o20 - size=200, overlap=20, top_k=3
 - s600,o60 - size=600, overlap=60, top_k=3

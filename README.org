@@ -1,12 +1,13 @@
 #+TITLE: ragev - RAG Evaluation Report
 
-* Preface
-** Overview
+* Overview
 Conducted a RAG system evaluation with these parameters changed:
 - document splitters; size-based, context-based
 - embedding models; all-minilm, nomic, qwen3 0.6b
 - LLM models; llama3.1:8b, gemini-2.5-flash-lite
 - Re-ranking enabled/disabled
+
+Tech Stack: Python, Emacs/Org-mode, ChromaDB, Ollama (Llama 3.1, Qwen3), Gemini 2.5 Flash and ms-marco-MiniLM-L6-v2
 
 ** Motivation
 RAG systems are sensitive to multiple interacting components (chunking, embeddings, retrieval, re-ranking).  This project evaluates how these components affect retrieval quality and answer correctness in a controlled setup.
@@ -37,8 +38,6 @@ while highlighting tradeoffs and failure modes.
 - Transforming queries to sequences of keywords worsen the results for the dataset.  Hypothesis:
   - Original queries were already aligned with source documents
   - Removing 'noises' also removed context
-
-*** Re-ranking
 - Re-ranking improved overall metrics.  But the improvement to MRR was significant (0.82 \to 1.00) because it directly pushed the most relevant chunk to the top.
 
 
@@ -108,16 +107,17 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite'
   - GPU not available
 
 *** Laptop (Mac/Chromebook)
-- For editing
+- Editing Python scripts and documents
+- Quick local tests
 
 ** Vector DB and embedding/LLM models
 *** Vector DB for embedding
 - ChromaDB 1.5.7
-- Collection name format: <embed_model>__s<size>_o<overlap>[_context]
+- Collection name format: <embed_model>__s<size>_o<overlap>_<splitter>
   - embed_model: all: all-minilm:latest, nom: nomic-embed-text:latest, qwe: qwen3-embedding:0.6b
   - size: chunk size in number of characters
   - overlap: overlap in number of characters
-  - _context: optional; use context-based splitter (note: support .org files only)
+  - splitter: sizeonly or context
 
 *** LLM models
 **** Ollama
@@ -256,6 +256,8 @@ xychart-beta
 | recall@k | 0.35 | 0.60 | 0.77 | 0.83 | 0.88 | 0.85 |
 | MRR      | 0.47 | 0.57 | 0.79 | 0.89 | 0.86 | 0.75 |
 - (chunk) size=800, overlap=80 is the winner, close second is size=600, overlap=60
+- small chunks can't contain enough context
+- a large chunk may have multiple sections/paragraphs
 
 *** Overlap
 - Size=600 characters, top_k=5, embed_model=all-minilm:latest
@@ -275,6 +277,8 @@ xychart-beta
 | recall@k | 0.83 | 0.70 | 0.77 | 0.83 | 0.78 | 0.73 |
 | MRR      | 0.82 | 0.77 | 0.74 | 0.89 | 0.85 | 0.77 |
 - Size=600, overlap=60 (overlap is 10% of size) is the winner
+- too small overlap (less than 10%) is worse than no overlap
+- too large overlap could effectively reduce total amount of information in top_k chunks
 
 *** top_k
 - Size=600, overlap=60, embed_model=all-minilm:latest
@@ -291,6 +295,7 @@ xychart-beta
 | recall@k | 0.83 | 0.83 | 0.87 | 0.90 | 0.90 | 0.90 |
 | MRR      | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 | 0.89 |
 - top_k>=6 maxed out.
+- changing top_k doesn't affect MRR as expected
 
 *** LLM models for answer
 - Note: using gemini for LLM for eval, hoping for better judgment.
@@ -306,8 +311,8 @@ xychart-beta
 |-----------------------+----------+------+--------------+-------------|
 | llama3.1:8b           |     0.90 | 0.89 |         0.94 |        0.72 |
 | gemini-2.5-flash-lite |     0.90 | 0.89 |         0.98 |        0.79 |
-- Gemini is the winner
-- Note that your data is exposed to Google Gemini if you use it for answers
+- Gemini is the winner simply because it's a much larger LLM \to stronger reasoning though Google doesn't disclose the exact parameter count (8B vs. estimated 20B+)
+- An important note is that your data is exposed to Google Gemini if you use it for answers.  Using Gemini as an evaluation LLM for an eval project shouldn't matter.
 
 *** Embed models
 #+begin_src mermaid :file images/embedmodels.png
@@ -385,5 +390,13 @@ xychart-beta
 |----------+----------+------+--------------+-------------|
 | disabled |     0.95 | 0.82 |         0.98 |        0.85 |
 | enabled  |     0.97 | 1.00 |         1.00 |        0.85 |
-- Re-ranking worked as expected for recall@k and MRR, especially the latter was improved significantly from 0.82 to perfect 1.00 as re-ranking pushed important chunks to top.  After all, transformer attention (cross-encoder) is better than simple cosine similarities (vector DB) in finding relevant chunks to user queries.
+- Re-ranking worked as expected for recall@k and MRR, especially the latter was improved significantly from 0.82 to perfect 1.00 as re-ranking pushed important chunks to top.
+- After all, transformer attention of cross-encoder suits more than simple cosine similarities of vector DB in finding relevant chunks to user queries.
 
+*** Best-config among tested
+- Context-based splitter with sub-splitting large sections (size=600, overlap=60)
+- top_k = 6
+- Embed-model: qwen3-embedding:0.6b
+- LLM-model: gemini-2.5-flash-lite
+- No query transformation
+- Re-ranking enabled (ms-marco-MiniLM-L6-v2)

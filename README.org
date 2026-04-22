@@ -10,18 +10,31 @@ Conducted a RAG system evaluation with these parameters changed:
 Tech Stack: Python, Emacs/Org-mode, ChromaDB, Ollama (Llama 3.1, Qwen3), Gemini 2.5 Flash and ms-marco-MiniLM-L6-v2
 
 #+begin_src mermaid
-graph TD
-    User((User)) -->|Query| App[ragev App]
-    subgraph Local Context
-        App -->|Embed| Qwen[Qwen3-Embedding]
-        Qwen -->|Search| DB[(ChromaDB)]
-        DB -->|Context| Rerank{Re-ranker}
+graph LR
+    %% User and Core App
+    User((User)) --- ragev[ragev App]
+
+    %% Local Knowledge Engine
+    subgraph Local_Stack [Local Knowledge]
+        direction TB
+        DB[(ChromaDB)] --- AI_L[Local AI: Qwen/Llama]
     end
-    subgraph Cloud Eval
-        Rerank -->|Top-K| Gemini[Gemini-2.5-Flash-Lite]
+
+    %% Cloud Brain
+    subgraph Cloud_Eval [Cloud Quality Control]
+        Gemini[Gemini Flash-Lite]
     end
-    Gemini -->|Answer| User
+
+    %% Minimal Connections
+    ragev <--> Local_Stack
+    ragev <--> Cloud_Eval
+
+    %% High-Contrast Minimal Styling
+    style ragev fill:#777,stroke:#333,stroke-width:2px
+    style Local_Stack fill:#747474,stroke:#ccc,stroke-dasharray: 5 5
+    style Cloud_Eval fill:#777,stroke:#e65100,stroke-dasharray: 5 5,color:#e65100
 #+end_src
+
 
 ** Motivation
 RAG systems are sensitive to multiple interacting components (chunking, embeddings, retrieval, re-ranking).  This project evaluates how these components affect retrieval quality and answer correctness in a controlled setup.
@@ -114,30 +127,19 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite'
 #+end_src
 
 * Test environment
+
 #+begin_src mermaid
-graph LR
-    %% User and Core App
-    User((User)) --- ragev[ragev App]
-
-    %% Local Knowledge Engine
-    subgraph Local_Stack [Local Knowledge]
-        direction TB
-        DB[(ChromaDB)] --- AI_L[Local AI: Qwen/Llama]
+graph TD
+    User((User)) -->|Query| App[ragev App]
+    subgraph Local Context
+        App -->|Embed| Qwen[Qwen3-Embedding]
+        Qwen -->|Search| DB[(ChromaDB)]
+        DB -->|Context| Rerank{Re-ranker}
     end
-
-    %% Cloud Brain
-    subgraph Cloud_Eval [Cloud Quality Control]
-        Gemini[Gemini Flash-Lite]
+    subgraph Cloud Eval
+        Rerank -->|Top-K| Gemini[Gemini-2.5-Flash-Lite]
     end
-
-    %% Minimal Connections
-    ragev <--> Local_Stack
-    ragev <--> Cloud_Eval
-
-    %% High-Contrast Minimal Styling
-    style ragev fill:#fff,stroke:#333,stroke-width:2px
-    style Local_Stack fill:#f4f4f4,stroke:#ccc,stroke-dasharray: 5 5
-    style Cloud_Eval fill:#fff,stroke:#e65100,stroke-dasharray: 5 5,color:#e65100
+    Gemini -->|Answer| User
 #+end_src
 
 ** Machines

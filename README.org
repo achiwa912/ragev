@@ -162,10 +162,10 @@ eval(col_name='qwe_s600_o60_context', top_k=6, model_embed='qwen3-embedding:0.6b
 - Top_k=5, embed_model=all-minilm:latest
 - Note: I saw ingest errors for (chunk) size=1000
 
-#+begin_src mermaid :file images/rag_metrics.png
+#+begin_src mermaid :file images/size.png
 xychart-beta
-    title "RAG Evaluation: Recall@k vs MRR"
-    x-axis "Overlap" [10, 20, 40, 60, 80, 100]
+    title "RAG Eval: Recall@k vs MRR"
+    x-axis "Size/Overlap" [100/10, 200/20, 400/40, 600/60, 800/80, 1000/100]
     y-axis "Score" 0 --> 1
     line [0.35, 0.60, 0.77, 0.83, 0.88, 0.85]
     line [0.47, 0.57, 0.79, 0.89, 0.86, 0.75]
@@ -181,6 +181,15 @@ xychart-beta
 *** Overlap
 - Size=600 characters, top_k=5, embed_model=all-minilm:latest
 - Note: as I see ingest errors with size=800, overlap>=40, I tested with size=600
+#+begin_src mermaid :file images/overlap.png
+xychart-beta
+  title "RAG Eval: Recall@k vs MRR (size=600)"
+  x-axis "Overlap" [0, 20, 50, 60, 80, 100]
+  y-axis "Score" 0 --> 1
+  line [0.83, 0.70, 0.77, 0.83, 0.78, 0.73]
+  line [0.82, 0.77, 0.74, 0.89, 0.85, 0.77]
+#+end_src
+
 | size     |  600 |  600 |  600 |  600 |  600 |  600 |
 | overlap  |    0 |   20 |   50 |   60 |   80 |  100 |
 |----------+------+------+------+------+------+------|
@@ -190,7 +199,14 @@ xychart-beta
 
 *** top_k
 - Size=600, overlap=60, embed_model=all-minilm:latest
-
+#+begin_src mermaid :file images/topk.png
+xychart-beta
+  title "RAG Eval: Recall@k vs MRR (size=600, overlap=600)"
+  x-axis "top_k" [3, 4, 5, 6, 7, 8]
+  y-axis "Score" 0 --> 1
+  line [0.83, 0.83, 0.87, 0.90, 0.90, 0.90]
+  line [0.89, 0.89, 0.89, 0.89, 0.89, 0.89]
+#+end_src
 | top_k    |    3 |    4 |    5 |    6 |    7 |    8 |
 |----------+------+------+------+------+------+------|
 | recall@k | 0.83 | 0.83 | 0.87 | 0.90 | 0.90 | 0.90 |
@@ -199,6 +215,14 @@ xychart-beta
 
 *** LLM models for answer
 - Note: using gemini for LLM for eval, hoping for better judgment.
+#+begin_src mermaid :file images/llmmodels.png
+xychart-beta
+  title "RAG Eval: Recall@k vs MRR (size=600, overlap=600)"
+  x-axis ["Recall@k", "MRR", "Faithfulness", "Correctness"]
+  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  bar [0.90, 0.89, 0.94, 0.72]
+  bar [0.90, 0.89, 0.98, 0.79]
+#+end_src#+end_src
 | answer model          | recall@k |  MRR | Faithfulness | Correctness |
 |-----------------------+----------+------+--------------+-------------|
 | llama3.1:8b           |     0.90 | 0.89 |         0.94 |        0.72 |

@@ -9,6 +9,20 @@ Conducted a RAG system evaluation with these parameters changed:
 
 Tech Stack: Python, Emacs/Org-mode, ChromaDB, Ollama (Llama 3.1, Qwen3), Gemini 2.5 Flash and ms-marco-MiniLM-L6-v2
 
+#+begin_src mermaid
+graph TD
+    User((User)) -->|Query| App[ragev App]
+    subgraph Local Context
+        App -->|Embed| Qwen[Qwen3-Embedding]
+        Qwen -->|Search| DB[(ChromaDB)]
+        DB -->|Context| Rerank{Re-ranker}
+    end
+    subgraph Cloud Eval
+        Rerank -->|Top-K| Gemini[Gemini-2.5-Flash-Lite]
+    end
+    Gemini -->|Answer| User
+#+end_src
+
 ** Motivation
 RAG systems are sensitive to multiple interacting components (chunking, embeddings, retrieval, re-ranking).  This project evaluates how these components affect retrieval quality and answer correctness in a controlled setup.
 
@@ -25,11 +39,11 @@ while highlighting tradeoffs and failure modes.
 - Embedding model matters.  qwen3-embedding was the winner.
 
 *** Queries
-- LLM is useful to generate queries with keywords and reference answers
+- LLMs are useful to generate queries with keywords and reference answers
 - You need to manually check and update as they may have hallucinations
 
 *** Evaluation
-- Prompt matters for better LLM evaluation with faithfulness and correctness.  Introducing CoT (Chain of Thoughts) reduced hallucinations
+- Prompt matters for better LLM evaluation with faithfulness and correctness.  Introducing CoT (Chain-of-Thought) reduced hallucinations
 - Still, you need to look at logs to see if LLM evaluation was correct
 
 *** LLM usage

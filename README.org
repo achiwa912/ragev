@@ -434,14 +434,19 @@ xychart-beta
 #+begin_src mermaid :file images/summary.png
 xychart-beta
   title "RAG Eval: recall@k(blue),MRR(green),Faith(red),Corct(yellow)"
-  x-axis ["Base", "+Gemini", "+Qwen3", "+Context", "+rerank"]
-  y-axis "Score (0.0 - 1.0)" 0 --> 1
+  x-axis ["Base", "+Gemini", "+Qwen3", "+Context", "+Rerank"]
+  y-axis "Score (0.0 - 1.0)" 0.7 --> 1
   line [0.90, 0.90, 0.92, 0.95, 0.97]
   line [0.89, 0.89, 0.87, 0.82, 1.00]
   line [0.94, 0.98, 0.94, 0.98, 1.00]
   line [0.72, 0.79, 0.82, 0.85, 0.85]
 #+end_src#+end_src
-Base: size=600, overlap=60, top_k=6
+- Base - size=600, overlap=60, top_k=6
+- +Gemini - changed answer model from llama to gemini
+- +Quwn3 - changed embed model from all-minilm to qwen3
+- +Context - changed splitter from size-based to context-based w/ sub-splitting
+- +Rerank - added cross-encoder as re-ranker
+
 
 **** Best-config among tested
 - Context-based splitter with sub-splitting large sections (size=600, overlap=60)

@@ -28,11 +28,6 @@ graph LR
     %% Minimal Connections
     ragev <--> Local_Stack
     ragev <--> Cloud_Eval
-
-    %% High-Contrast Minimal Styling
-    style ragev fill:#777,stroke:#333,stroke-width:2px
-    style Local_Stack fill:#747474,stroke:#ccc,stroke-dasharray: 5 5
-    style Cloud_Eval fill:#777,stroke:#e65100,stroke-dasharray: 5 5,color:#e65100
 #+end_src
 
 

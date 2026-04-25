@@ -173,7 +173,18 @@ def eval(col_name: str='', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_e
                 'answer': result['answer'],
                 'reference_answer': question['reference_answer'],
                 'distances': result['distances'],
-                'chunks': result['chunks']
+                'chunks': result['chunks'],
+                'params': {
+                    'col': col_name,
+                    'top_k': top_k,
+                    'm_ans': model_ans,
+                    'm_eval': model_eval,
+                    'm_emb': model_embed,
+                    'm_rrnk': model_rerank,
+                    'ronly': retrieve_only,
+                    'qtrans': qtrans,
+                    'rerank': rerank
+                }
             }
             f.write(json.dumps(record) + "\n")
             f.flush()
@@ -181,6 +192,6 @@ def eval(col_name: str='', top_k: int=6, model_ans: str=DEFAULT_ANS_LLM, model_e
 
 # all-minilm:latest, nomic-embed-text:latest, qwen3-embedding:0.6b
 # llama3.1:8b, gemini-2.5-flash-lite
-# eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', model_rerank='cross-encoder/ms-marco-MiniLM-L6-v2', retrieve_only=False, qtrans=False, rerank=False)
+# eval(col_name='qwe_s600_o60_context', top_k=6, model_ans='gemini-2.5-flash-lite', model_eval='gemini-2.5-flash-lite', model_embed='qwen3-embedding:0.6b', model_rerank='cross-encoder/ms-marco-MiniLM-L6-v2', retrieve_only=False, qtrans=False, rerank=True)
 breakpoint()
 

@@ -1,0 +1,142 @@
+<html data-theme="light">
+  <head>
+    <style>
+      tbody tr.selected {
+	  --pico-background-color: #ee9;
+      }
+      .even {
+	  --pico-background-color: lightyellow;
+      }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <main class="container">
+	<h1>Parameters</h1>
+	<table>
+	  <tr>
+	    <th>collection</th>
+	    <td>{{ items[0]?.params.col }}</td>
+	  </tr>
+	  <tr>
+	    <th>top_k</th>
+	    <td>{{ items[0]?.params.top_k }}</td>
+	  </tr>
+	  <tr>
+	    <th>answer model</th>
+	    <td>{{ items[0]?.params.m_ans }}</td>
+	  </tr>
+	  <tr>
+	    <th>eval model</th>
+	    <td>{{ items[0]?.params.m_eval }}</td>
+	  </tr>
+	  <tr>
+	    <th>embed model</th>
+	    <td>{{ items[0]?.params.m_emb }}</td>
+	  </tr>
+	  <tr>
+	    <th>re-ranker model</th>
+	    <td>{{ items[0]?.params.m_rrnk }}</td>
+	  </tr>
+	  <tr>
+	    <th>retrieve-only</th>
+	    <td>{{ items[0]?.params.ronly }}</td>
+	  </tr>
+	  <tr>
+	    <th>query trans</th>
+	    <td>{{ items[0]?.params.qtrans }}</td>
+	  </tr>
+	  <tr>
+	    <th>re-rank</th>
+	    <td>{{ items[0]?.params.rerank }}</td>
+	  </tr>
+	</table>
+	<h1>Results</h1>
+	<table>
+	  <thead>
+	    <tr>
+	      <th>qid</th>
+	      <th>recall@k</th>
+	      <th>rr</th>
+	      <th>faithfulness</th>
+	      <th>correctness</th>
+	    </tr>
+	  </thead>
+	  <tbody>
+	    <template v-for="(item, index) in items">
+	      <tr @click="() => {
+			  selectedId = selectedId !== index ? index : -1
+			  }" style="cursor:pointer"
+		  :class="{ selected: index === selectedId,
+			  even: index%2 === 0 }">
+		<td>{{ item.qid }}</td>
+		<td>{{ item.recallk.toFixed(3) }}</td>
+		<td>{{ item.rr.toFixed(3) }}</td>
+		<td>{{ item.faithfulness.toFixed(3) }}</td>
+		<td>{{ item.correctness.toFixed(3) }}</td>
+	      </tr>
+	      <tr v-if="index == selectedId">
+		<td colspan="5">
+		  <div style="display: grid; grid-template-columns: 5fr 8fr;">
+		    <div>{{ item.query }}</div>
+		    <div>{{ item.answer }}</div>
+		  </div>
+		</td>
+	      </tr>
+	    </template>
+	  </tbody>
+	  <tfoot>
+	    <tr>
+	      <td>avg</td>
+	      <td>{{ sum.recallk.toFixed(3) }}</td>
+	      <td>{{ sum.mrr.toFixed(3) }}</td>
+	      <td>{{ sum.faithfulness.toFixed(3) }}</td>
+	      <td>{{ sum.correctness.toFixed(3) }}</td>
+	    </tr>
+	  </tfoot>
+	</table>
+      </main>
+    </div>
+    
+    <script>
+      const { createApp, ref, onMounted, computed } = Vue
+      createApp({
+	  setup() {
+	      const items = ref([])
+	      const selectedId = ref(-1)
+	      onMounted(async () => {
+		  items.value = await getData()
+	      })
+	      const sum = computed(() => ({
+		  recallk: avg(items.value, 'recallk'),
+		  mrr: avg(items.value, 'rr'),
+		  faithfulness: avg(items.value, 'faithfulness'),
+		  correctness: avg(items.value, 'correctness')
+	      }))
+	      function avg(arr, key) {
+		  return arr.map(item => item[key]).reduce(
+		      (acc, val) => {
+			  return acc + val
+		      }, 0)/items.value.length
+	      }
+	      async function getData() {
+		  try {
+		      const response = await fetch(
+			  'http://localhost:5000/api/results')
+		      if (!response.ok) {
+			  throw new Error(`resp sts: ${response.status}`)
+		      }
+		      return await response.json()
+		  } catch (error) {
+		      console.error(error.message)
+		  }
+	      }
+	      return { items, sum, selectedId }
+	  }
+      }).mount('#app')
+    </script>
+  </body>
+</html>

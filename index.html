@@ -1,114 +1,171 @@
-<html data-theme="light">
+<!doctype html>
+<html data-theme="emerald">
   <head>
-    <style>
-      tbody tr.selected {
-	  --pico-background-color: #ee9;
-      }
-      .even {
-	  --pico-background-color: lightyellow;
-      }
-    </style>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  </head>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>  </head>
 
   <body>
     <div id="app">
-      <main class="container">
-	<h1>Parameters</h1>
-	<table>
-	  <tr>
-	    <th>collection</th>
-	    <td>{{ items[0]?.params.col }}</td>
-	  </tr>
-	  <tr>
-	    <th>top_k</th>
-	    <td>{{ items[0]?.params.top_k }}</td>
-	  </tr>
-	  <tr>
-	    <th>answer model</th>
-	    <td>{{ items[0]?.params.m_ans }}</td>
-	  </tr>
-	  <tr>
-	    <th>eval model</th>
-	    <td>{{ items[0]?.params.m_eval }}</td>
-	  </tr>
-	  <tr>
-	    <th>embed model</th>
-	    <td>{{ items[0]?.params.m_emb }}</td>
-	  </tr>
-	  <tr>
-	    <th>re-ranker model</th>
-	    <td>{{ items[0]?.params.m_rrnk }}</td>
-	  </tr>
-	  <tr>
-	    <th>retrieve-only</th>
-	    <td>{{ items[0]?.params.ronly }}</td>
-	  </tr>
-	  <tr>
-	    <th>query trans</th>
-	    <td>{{ items[0]?.params.qtrans }}</td>
-	  </tr>
-	  <tr>
-	    <th>re-rank</th>
-	    <td>{{ items[0]?.params.rerank }}</td>
-	  </tr>
-	</table>
-	<h1>Results</h1>
-	<table>
-	  <thead>
-	    <tr>
-	      <th>qid</th>
-	      <th>recall@k</th>
-	      <th>rr</th>
-	      <th>faithfulness</th>
-	      <th>correctness</th>
-	    </tr>
-	  </thead>
-	  <tbody>
-	    <template v-for="(item, index) in items">
-	      <tr @click="() => {
-			  selectedId = selectedId !== index ? index : -1
-			  }" style="cursor:pointer"
-		  :class="{ selected: index === selectedId,
-			  even: index%2 === 0 }">
-		<td>{{ item.qid }}</td>
-		<td>{{ item.recallk.toFixed(3) }}</td>
-		<td>{{ item.rr.toFixed(3) }}</td>
-		<td>{{ item.faithfulness.toFixed(3) }}</td>
-		<td>{{ item.correctness.toFixed(3) }}</td>
+      <main class="container mx-auto p-6 space-y-10">
+	<div class="card bg-base-100 shadow-xl border border-base-300">
+	  <div class="card-body">
+	    <select v-model="selectedFile" class="select">
+	      <option disabled value="">Choose the result</option>
+	      <option v-for="file in files" :key="file" :value="file">
+		{{ file }}
+	      </option>
+	    </select>
+	    <div class="collapse bg-base-100 border border-base-300 p-4">
+	      <input type="checkbox" />
+	      <div class="collapse-title font-semibold">Ingest with paramters</div>
+	      <div class="collapse-content text-sm">
+		<fieldset class="fieldset">
+		  <legend class="fieldset-legend">Embed model</legend>
+		  <select v-model="selectedEmbedModel" class="select">
+		    <option v-for="model in models['embed_models']"
+			    :key="model" :value="model">
+		      {{ model }}
+		    </option>
+		  </select>
+		</fieldset>
+		<fieldset class="fieldset">
+		  <legend class="fieldset-legend">Size</legend>
+		  <input type="number" class="input" placeholder="0" min="0" max="99999"/>
+		</fieldset>
+		<fieldset class="fieldset">
+		  <legend class="fieldset-legend">Overlap</legend>
+		  <input type="number" class="input" placeholder="0" min="0" max="99999"/>
+		</fieldset>
+
+		<div class="flex items-center justify-between mt-4">
+		  <label class="label cusor-pointr gap-3">
+		    <span>Context-based</span>
+		    <input type="checkbox" checked="checked" class="toggle toggle-primary" />
+		  </label>
+		  <button class="btn btn-primary">Ingest</button>
+		</div>
+		
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div class="card bg-base-100 shadow-xl border border-base-300">
+	  <div class="card-body">
+	    <h2 class="card-title text-primary text-2xl mb-4">Parameters</h2>
+	    <table class="table">
+	      <tr>
+		<th>collection</th>
+		<td>{{ items[0]?.params.col }}</td>
 	      </tr>
-	      <tr v-if="index == selectedId">
-		<td colspan="5">
-		  <div style="display: grid; grid-template-columns: 5fr 8fr;">
-		    <div>{{ item.query }}</div>
-		    <div>{{ item.answer }}</div>
-		  </div>
-		</td>
+	      <tr>
+		<th>top_k</th>
+		<td>{{ items[0]?.params.top_k }}</td>
 	      </tr>
-	    </template>
-	  </tbody>
-	  <tfoot>
-	    <tr>
-	      <td>avg</td>
-	      <td>{{ sum.recallk.toFixed(3) }}</td>
-	      <td>{{ sum.mrr.toFixed(3) }}</td>
-	      <td>{{ sum.faithfulness.toFixed(3) }}</td>
-	      <td>{{ sum.correctness.toFixed(3) }}</td>
-	    </tr>
-	  </tfoot>
-	</table>
+	      <tr>
+		<th>answer model</th>
+		<td>{{ items[0]?.params.m_ans }}</td>
+	      </tr>
+	      <tr>
+		<th>eval model</th>
+		<td>{{ items[0]?.params.m_eval }}</td>
+	      </tr>
+	      <tr>
+		<th>embed model</th>
+		<td>{{ items[0]?.params.m_emb }}</td>
+	      </tr>
+	      <tr>
+		<th>re-ranker model</th>
+		<td>{{ items[0]?.params.m_rrnk }}</td>
+	      </tr>
+	      <tr>
+		<th>retrieve-only</th>
+		<td>{{ items[0]?.params.ronly }}</td>
+	      </tr>
+	      <tr>
+		<th>query trans</th>
+		<td>{{ items[0]?.params.qtrans }}</td>
+	      </tr>
+	      <tr>
+		<th>re-rank</th>
+		<td>{{ items[0]?.params.rerank }}</td>
+	      </tr>
+	    </table>
+	  </div>
+	</div>
+	<div class="card bg-base-100 shadow-xl border border-base-300">
+	  <div class="card-body p-0">
+	    <div class="px-8 pt-6 pb-2">
+	      <h2 class="card-title text-secondary text-2xl">Evaluation Results</h2>
+	    </div>
+	    <div class="overflow-x-auto">
+	      <table class="table table-zebra w-full">
+		<thead>
+		  <tr>
+		    <th>qid</th>
+		    <th>recall@k</th>
+		    <th>mrr</th>
+		    <th>faithfulness</th>
+		    <th>correctness</th>
+		  </tr>
+		</thead>
+		<tbody>
+		  <template v-for="(item, index) in items">
+		    <tr @click="selectedId = selectedId !== index ? index : -1"
+			style="cursor:pointer transition-colors;"
+			:class="{ 'bg-primary text-primary-content': index === selectedId }">
+		      <td>{{ item.qid }}</td>
+		      <td>{{ item.recallk.toFixed(3) }}</td>
+		      <td>{{ item.rr.toFixed(3) }}</td>
+		      <td>{{ item.faithfulness.toFixed(3) }}</td>
+		      <td>{{ item.correctness.toFixed(3) }}</td>
+		    </tr>
+		    <tr v-if="index == selectedId" class="bg-base-200">
+		      <td colspan="5" class="p-4">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			  <div class="space-y-1">
+			    <span class="text-xs font-bold uppercase opacity-50">Query</span>		      
+			    <div class="p-3 bg-base-100 rounded-box border border-base-300">{{ item.query }}</div>
+			  </div>
+			  <div class="space-y-1">
+			    <span class="text-xs font-bold uppercase opacity-50">Answer</span>
+			    <div class="p-3 bg-base-100 rounded-box border border-base-300 text-success">{{ item.answer }}</div>
+			  </div>
+			</div>
+		      </td>
+		    </tr>
+		  </template>
+		</tbody>
+		<tfoot>
+		  <tr>
+		    <td>avg</td>
+		    <td>{{ sum.recallk.toFixed(3) }}</td>
+		    <td>{{ sum.mrr.toFixed(3) }}</td>
+		    <td>{{ sum.faithfulness.toFixed(3) }}</td>
+		    <td>{{ sum.correctness.toFixed(3) }}</td>
+		  </tr>
+		</tfoot>
+	      </table>
+	    </div>
+	  </div>
+	</div>
       </main>
     </div>
-    
     <script>
-      const { createApp, ref, onMounted, computed } = Vue
+      const { createApp, ref, onMounted, computed, watch } = Vue
       createApp({
 	  setup() {
 	      const items = ref([])
 	      const selectedId = ref(-1)
+	      const selectedFile = ref('')
+	      const files = ref([])
+	      const models = ref([])
+	      const selectedEmbedModel = ref('')
+	      //const selectedAnsModel = ref('')
 	      onMounted(async () => {
-		  items.value = await getData()
+		  files.value = await getFiles()
+		  models.value = await getModels()
 	      })
 	      const sum = computed(() => ({
 		  recallk: avg(items.value, 'recallk'),
@@ -117,15 +174,17 @@
 		  correctness: avg(items.value, 'correctness')
 	      }))
 	      function avg(arr, key) {
+		  if (!arr || !arr.length) return 0
 		  return arr.map(item => item[key]).reduce(
 		      (acc, val) => {
 			  return acc + val
 		      }, 0)/items.value.length
 	      }
-	      async function getData() {
+	      async function getData(file) {
+		  console.log(file)  // debug
 		  try {
 		      const response = await fetch(
-			  'http://localhost:5000/api/results')
+			  `http://localhost:5000/api/results?file=${file}`)
 		      if (!response.ok) {
 			  throw new Error(`resp sts: ${response.status}`)
 		      }
@@ -134,7 +193,37 @@
 		      console.error(error.message)
 		  }
 	      }
-	      return { items, sum, selectedId }
+	      async function getFiles() {
+		  try {
+		      const response = await fetch(
+			  'http://localhost:5000/api/files')
+		      if (!response.ok) {
+			  throw new Error(`resp sts: ${response.status}`)
+		      }
+		      return await response.json()
+		  } catch (error) {
+		      console.error(error.message)
+		  }
+	      }
+	      async function getModels() {
+		  try {
+		      const response = await fetch(
+			  'http://localhost:5000/api/models')
+		      if (!response.ok) {
+			  throw new Error(`resp sts: ${response.status}`)
+		      }
+		      return await response.json()
+		  } catch (error) {
+		      console.error(error.message)
+		  }
+	      }
+	      watch(selectedFile, async (file) => {
+		  if (!file) return
+		  items.value = await getData(file)
+		  // console.log(items.value.length)  // debug
+		  // console.log(JSON.stringify(items.value[0])) // debug
+	      })
+	      return { items, sum, selectedId, files, selectedFile, models, selectedEmbedModel }
 	  }
       }).mount('#app')
     </script>

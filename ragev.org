@@ -17,8 +17,9 @@ Don't give me full working scripts.  Give me a problem to solve one at a time so
 - prob 4 - table and expandable
 - prob 5 - alternating row colors, highlight selected row, make avg row visually distinct; pure CSS
 - prob 6 - too many decimal place > 3 decimal places; toFixed() on MDN
+- prob 7 - dynamic file selection (+ moving to tailwind css + daisyUI)
 === working on
-- prob 7 - dynamic file selection
+- prob 8 - form to invoke ingest/eval from the UI 
 #+end_src
 
 
